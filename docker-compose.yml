@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # 1. Database Service
+  postgres:
+    image: postgres:16-alpine
+    container_name: medicloud-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medicloud-network
+
+  # 2. Backend API
+  backend:
+    image: ${BACKEND_IMAGE} # Akan dipull dari Docker Hub
+    container_name: medicloud-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PORT: 3000
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET}
+    networks:
+      - medicloud-network
+
+  # 3. Frontend
+  frontend:
+    image: ${FRONTEND_IMAGE} # Akan dipull dari Docker Hub
+    container_name: medicloud-frontend
+    restart: always
+    networks:
+      - medicloud-network
+
+  # 4. Caddy Reverse Proxy
+  caddy:
+    image: caddy:alpine
+    container_name: medicloud-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile # Mapping config
+      - caddy_data:/data # Simpan sertifikat SSL biar gak limit
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - medicloud-network
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  medicloud-network:
+    driver: bridge
