@@ -7,9 +7,6 @@ on:
       - dev
 
 jobs:
-  # ==========================================
-  # JOB 1: BUILD DOCKER IMAGE
-  # ==========================================
   build:
     runs-on: ubuntu-latest
     outputs:
@@ -40,16 +37,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
-  # ==========================================
-  # JOB 2: DEPLOY TO SERVER (Self Hosted)
-  # ==========================================
   deploy:
     needs: build
-    # Gunakan label runner yang kita buat tadi
-    runs-on: self-hosted
+    runs-on: self-hosted # Akan mencari runner aktif di laptopmu
     
     steps:
-      - name: Checkout Code (For script access)
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Set Environment Variables
@@ -61,8 +54,6 @@ jobs:
             echo "DEPLOY_ENV=dev" >> $GITHUB_ENV
             echo "CONTAINER_NAME=medicloud-dev" >> $GITHUB_ENV
           fi
-          
-          # Ambil tag image dari job build
           echo "IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/medicloud:${{ github.ref_name }}" >> $GITHUB_ENV
 
       - name: Make Script Executable
