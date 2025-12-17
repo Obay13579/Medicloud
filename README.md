@@ -54,7 +54,8 @@ Built with a modern **Monorepo Architecture** for seamless full-stack developmen
 - **Architecture:** Controller-Service-Repository pattern
 
 ### **Infrastructure**
-- **Database:** PostgreSQL 16 (Containerized via Docker)
+- **Database:** Supabase (Cloud PostgreSQL) - *Shared across all nodes*
+- **Load Balancer:** Cloudflare Tunnel (Replica) - *High Availability*
 - **DevOps:** Docker Compose, GitHub Actions (CI/CD)
 
 ---
@@ -365,78 +366,67 @@ model Drug {
 
 ---
 
-## 🚀 Getting Started (Development Guide)
+## 🚀 Getting Started (Team Setup Guide)
 
-Ikuti langkah ini secara berurutan untuk menjalankan aplikasi di local machine (Linux/WSL).
+Ikuti langkah ini agar laptopmu terhubung ke cluster Load Balancing tim.
 
-### 1. Prerequisites (Setup Environment)
+### 1. Prerequisites
 
-Jika ini pertama kali setup di laptop/server baru, jalankan script automasi ini untuk menginstall Docker, Node.js v20, dan pnpm.
+Pastikan Docker Desktop sudah jalan. Jika di Linux/WSL, jalankan script setup:
 ```bash
 chmod +x setup_env.sh
 ./setup_env.sh
 # ⚠️ PENTING: Logout dan Login kembali terminal setelah script selesai agar permission Docker aktif.
 ```
 
-### 2. Installation
+### 2. Installation & Environment Setup
 
-Install semua dependencies (Frontend & Backend) sekaligus dari root folder:
+Kita sudah siapkan script automasi untuk install dependency dan copy environment variable dasar.
 ```bash
-npm run install:all
+npm run init:project
 ```
 
-### 3. Database Setup (Docker)
+### 3. Configure Environment (.env)
 
-Nyalakan container database PostgreSQL. Pastikan Docker Desktop/Engine sudah jalan.
+Buka file `.env` di root folder. **Minta Token & URL Database ke Team Lead (Obi).**
+**Jangan pakai database lokal agar fitur High Availability jalan!**
+```ini
+# .env (Root Folder)
+
+# 1. Database Cloud (Supabase) - Minta ke Admin
+DATABASE_URL="postgresql://postgres.<DB_ID>:<PASSWORD>@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
+
+# 2. Tunnel Token (Cloudflare) - Minta ke Admin
+TUNNEL_TOKEN="eyJh..."
+
+# 3. Security
+JWT_SECRET="rahasia_tim_kita_123"
+
+# 4. Backend Config
+PORT=3000
+NODE_ENV=development
+
+# 5. Frontend Config (Optional)
+VITE_API_URL=http://localhost:3000
+```
+
+### 4. Run Application & Tunnel ⚡
+
+Nyalakan Backend, Frontend, dan Load Balancer Agent sekaligus.
 ```bash
 docker compose up -d
 ```
 
-### 4. Environment Variables Configuration
+**Tunggu status tunnel "Connected" di Dashboard Cloudflare.**
 
-**A. Backend Config**
+### 5. Database Migration (Optional)
 
-Buat file `backend/.env` dan isi dengan kredensial development (sesuai docker-compose):
-```ini
-PORT=3000
-NODE_ENV=development
-
-# Credential HARUS sama dengan docker-compose.yml
-DATABASE_URL="postgresql://medicloud:password123@localhost:5432/medicloud_db?schema=public"
-
-JWT_SECRET="rahasia_development_saja"
-```
-
-**B. Frontend Config**
-
-Buat file `frontend/.env` (Optional, default Vite akan handle, tapi good practice):
-```ini
-VITE_API_URL=http://localhost:3000
-```
-
-### 5. Database Migration
-
-Sinkronisasi struktur tabel (Schema) ke dalam Database Docker:
+Hanya jalankan jika kamu mengubah `schema.prisma`.
 ```bash
 cd backend
-npx prisma migrate dev --name init_dev
+npx prisma migrate dev --name nama_perubahan
 cd ..
 ```
-
-*Jika sukses, akan muncul pesan "Your database is now in sync with your schema".*
-
-### 6. Run Application ⚡
-
-Jalankan Frontend dan Backend secara bersamaan dengan satu perintah:
-```bash
-npm run dev
-```
-
-Aplikasi siap diakses:
-
-* **Backend API:** http://localhost:3000
-* **Frontend App:** http://localhost:5173
-* **Prisma Studio (DB GUI):** http://localhost:5555 (Jalankan manual jika butuh)
 
 ---
 
