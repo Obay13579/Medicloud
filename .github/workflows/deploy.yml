@@ -2,7 +2,8 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    # Trigger kalau ada push ke main (Production) atau dev (Staging)
+    branches: [ "main", "dev" ]
 
 jobs:
   build-and-push:
@@ -11,45 +12,68 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Login ke Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build & Push Backend
+      # Setup Docker Meta untuk handle Tagging otomatis (main -> latest, dev -> dev)
+      - name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/medicloud-backend
+            ${{ secrets.DOCKERHUB_USERNAME }}/medicloud-frontend
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      # Build Backend
       - name: Build and push Backend
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          # Kita filter output tags biar yang backend ambil tag backend aja
+          # (Note: metadata-action agak tricky buat monorepo, 
+          # cara manual di bawah lebih aman untuk project simple):
+          
+      # --- CARA MANUAL YANG LEBIH PASTI UNTUK MONOREPO ---
+      
+      # Backend Build
+      - name: Build Backend (Main/Latest)
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/medicloud-backend:latest
 
-      # Build & Push Frontend
-      - name: Build and push Frontend
+      - name: Build Backend (Dev)
+        if: github.ref == 'refs/heads/dev'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/medicloud-backend:dev
+
+      # Frontend Build
+      - name: Build Frontend (Main/Latest)
+        if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          file: ./frontend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/medicloud-frontend:latest
-          
-  # Job Deploy ke VPS (Optional: Aktifkan jika Secrets VPS sudah diset)
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: success() 
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+
+      - name: Build Frontend (Dev)
+        if: github.ref == 'refs/heads/dev'
+        uses: docker/build-push-action@v5
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_KEY }}
-          script: |
-            cd ~/medicloud
-            docker compose pull
-            docker compose up -d --remove-orphans
-            docker image prune -f
+          context: ./frontend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/medicloud-frontend:dev

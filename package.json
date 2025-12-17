@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && pnpm dev\"",
-    "install:all": "cd backend && npm install && cd frontend && pnpm install",
-    "build": "cd backend && npm run build && cd frontend && pnpm build"
+      "install:all": "concurrently \"npm install\" \"cd backend && npm install\" \"cd frontend && pnpm install\"",
+      "copy:env": "cp -n backend/.env.example backend/.env && cp -n frontend/.env.example frontend/.env || true",
+      "init:project": "npm run copy:env && npm run install:all && cd backend && npx prisma generate",
+      "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && pnpm dev\""
   },
   "keywords": [],
   "author": "",

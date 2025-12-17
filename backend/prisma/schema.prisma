@@ -11,11 +11,107 @@ model Tenant {
   id        String   @id @default(cuid())
   slug      String   @unique
   name      String
-  email     String
-  phone     String
-  address   String?
-  logoUrl   String?
-  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  
+  users         User[]
+  patients      Patient[]
+  appointments  Appointment[]
+  records       MedicalRecord[]
+  prescriptions Prescription[]
+  inventory     Drug[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  tenantId  String
+  email     String
+  password  String   // Hashed with bcrypt
+  name      String
+  role      String   // ADMIN, DOCTOR, PHARMACIST
+  
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+  records       MedicalRecord[]
+  
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+model Patient {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  phone     String
+  dob       DateTime
+  gender    String   // MALE, FEMALE, OTHER
+  
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  records      MedicalRecord[]
+  
+  @@index([tenantId])
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  tenantId  String
+  patientId String
+  doctorId  String
+  date      DateTime
+  timeSlot  String   // e.g., "09:00-09:30"
+  status    String   // SCHEDULED, CHECKED_IN, IN_PROGRESS, COMPLETED
+  
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor  User    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  
+  @@index([tenantId, date])
+  @@index([tenantId, doctorId])
+}
+
+model MedicalRecord {
+  id          String   @id @default(cuid())
+  tenantId    String
+  patientId   String
+  doctorId    String
+  visitDate   DateTime @default(now())
+  
+  // SOAP Format
+  subjective  String?  // Keluhan
+  objective   String?  // Pemeriksaan
+  assessment  String?  // Diagnosis
+  plan        String?  // Tindakan
+  
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor        User           @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  prescriptions Prescription[]
+  
+  @@index([tenantId, patientId])
+}
+
+model Prescription {
+  id        String   @id @default(cuid())
+  tenantId  String
+  recordId  String
+  status    String   // PENDING, PROCESSING, COMPLETED
+  items     Json     // [{drugName, dosage, frequency, duration}]
+  createdAt DateTime @default(now())
+  
+  tenant Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  record MedicalRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  
+  @@index([tenantId, status])
+}
+
+model Drug {
+  id       String @id @default(cuid())
+  tenantId String
+  name     String
+  stock    Int    @default(0)
+  unit     String // tablet, botol, ml, etc
+  
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@index([tenantId])
 }

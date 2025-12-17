@@ -28,6 +28,16 @@ Built with a modern **Monorepo Architecture** for seamless full-stack developmen
 
 ---
 
+## 🎯 MVP Scope (5-Day Development)
+
+**Simplified Focus:**
+- **3 User Roles:** Admin, Doctor, Pharmacist
+- **8 Pages:** 2 Public + 6 Dashboard pages
+- **25 API Endpoints:** Core functionality only
+- **Priority:** Multi-tenancy + Core workflows (Patient → Doctor → Pharmacy)
+
+---
+
 ## 🛠️ Tech Stack
 
 ### **Frontend (`/frontend`)**
@@ -52,221 +62,305 @@ Built with a modern **Monorepo Architecture** for seamless full-stack developmen
 ## 📂 Project Structure
 ```text
 medicloud/
-├── docker-compose.yml      # 🗄️ Database Service Config (PostgreSQL)
-├── setup_env.sh            # ⚡ Script Automasi Setup Linux Environment
-├── package.json            # 🚀 Root scripts (Monorepo orchestration)
-├── README.md               # 📖 Documentation
+├── docker-compose.yml      # 🗄️ PostgreSQL Database Service
+├── setup_env.sh            # ⚡ Linux Environment Setup Script
+├── package.json            # 🚀 Monorepo Root Scripts
+├── README.md               # 📖 This Documentation
 │
 ├── backend/                # 🧠 Server Side
 │   ├── src/
-│   │   ├── app.ts          # Express App Logic
-│   │   ├── index.ts        # Server Entry Point
-│   │   └── ...             # Controllers, Routes, Middlewares
+│   │   ├── controllers/    # Request handlers
+│   │   ├── services/       # Business logic
+│   │   ├── middlewares/    # Auth, validation, error handling
+│   │   ├── routes/         # API route definitions
+│   │   ├── app.ts          # Express app configuration
+│   │   └── index.ts        # Server entry point
 │   ├── prisma/
-│   │   └── schema.prisma   # Database Schema (Single Source of Truth)
-│   └── .env                # Backend Config (DB Connection)
+│   │   └── schema.prisma   # Database schema (Single Source of Truth)
+│   ├── .env                # Backend environment variables
+│   └── package.json
 │
 └── frontend/               # 💅 Client Side
     ├── src/
     │   ├── components/
-    │   │   ├── ui/             # Shadcn Components
-    │   │   ├── shared/         # Shared components (Logo, etc)
-    │   │   └── layouts/        # Layout components
-    │   │       ├── PublicLayout.tsx   # Marketing layout
-    │   │       └── AppLayout.tsx      # Dashboard layout
-    │   ├── features/           # Feature modules
-    │   │   ├── auth/           # Authentication features
-    │   │   ├── marketing/      # Landing page components
-    │   │   ├── dashboard/      # Dashboard widgets
-    │   │   ├── patient/        # Patient management
-    │   │   ├── appointment/    # Appointment features
-    │   │   └── emr/            # Medical records
-    │   ├── pages/              # Page components
-    │   │   ├── public/         # Marketing pages
-    │   │   ├── app/            # Application pages
-    │   │   └── auth/           # Auth pages
+    │   │   ├── ui/         # Shadcn UI components
+    │   │   ├── shared/     # Reusable components (Logo, etc)
+    │   │   └── layouts/    # Layout wrappers
+    │   │       ├── PublicLayout.tsx   # Marketing pages layout
+    │   │       └── AppLayout.tsx      # Dashboard layout (Sidebar + Topbar)
+    │   ├── features/       # Feature-specific components
+    │   │   ├── auth/       # Login/Register forms
+    │   │   ├── patients/   # Patient management
+    │   │   ├── appointments/ # Appointment features
+    │   │   ├── emr/        # Medical records
+    │   │   └── pharmacy/   # Prescription & inventory
+    │   ├── pages/          # Page components
+    │   │   ├── public/     # Landing, Login
+    │   │   ├── admin/      # Admin dashboard pages
+    │   │   ├── doctor/     # Doctor dashboard pages
+    │   │   └── pharmacy/   # Pharmacy dashboard pages
     │   ├── lib/
-    │   │   ├── api.ts          # Axios instance
-    │   │   └── utils.ts        # Tailwind utilities
-    │   └── App.tsx             # Routing setup
-    └── .env                    # Frontend Config
+    │   │   ├── api.ts      # Axios instance with interceptors
+    │   │   └── utils.ts    # Utility functions (cn for Tailwind)
+    │   ├── App.tsx         # React Router setup
+    │   └── main.tsx        # React entry point
+    ├── .env                # Frontend environment variables
+    └── package.json
 ```
 
 ---
 
-## 🗺️ Frontend Structure & API Mapping
+## 📱 Application Pages (8 Total)
 
-### Frontend Directory Structure (Detailed)
-```text
-frontend/src/
-├── components/
-│   ├── ui/                     # Shadcn components (Button, Card, Input)
-│   ├── shared/                 # Components shared across Public & App (Logo, etc)
-│   ├── layouts/                # 👈 KEY: Layout Separation
-│   │   ├── PublicLayout.tsx    # Marketing Layout (Transparent Navbar, Large Footer)
-│   │   └── AppLayout.tsx       # Dashboard Layout (Left Sidebar, Top User Bar)
-│
-├── features/                   # Feature Logic (By Module)
-│   ├── auth/                   # Login/Register forms
-│   ├── marketing/              # Landing Page components (Hero, PricingCard)
-│   ├── dashboard/              # Dashboard stats widgets
-│   ├── patient/                # Patient tables & forms
-│   ├── appointment/            # Calendar & Booking forms
-│   └── emr/                    # Medical record forms
-│
-├── pages/                      # 👈 PAGE ORGANIZATION
-│   ├── public/                 # Marketing Pages (Landing Site)
-│   │   ├── LandingPage.tsx
-│   │   ├── PricingPage.tsx
-│   │   ├── FeaturesPage.tsx
-│   │   └── SignupPage.tsx
-│   │
-│   ├── app/                    # Application Pages (After Login)
-│   │   ├── admin/
-│   │   │   ├── AdminDashboard.tsx
-│   │   │   └── PatientList.tsx
-│   │   ├── doctor/
-│   │   │   └── DoctorDashboard.tsx
-│   │   └── patient/
-│   │       └── PatientPortal.tsx
-│   │
-│   └── auth/                   # Auth Pages (Login/Forgot Password)
-│       └── LoginPage.tsx
-│
-├── lib/
-│   ├── api.ts                  # Axios Instance
-│   └── utils.ts                # Tailwind merge utility
-│
-└── App.tsx                     # Routing Setup
-```
+### **Public Pages (2)**
+1. **Landing Page** - Marketing homepage (static content)
+2. **Login Page** - Unified login for all user roles
 
-### Page UI to Backend API Mapping
+### **Admin Dashboard (3)**
+3. **Admin Dashboard** - Overview stats + Today's queue management
+4. **Patient List** - CRUD patient records
+5. **Appointment List** - Manage all appointments
 
-Panduan untuk Frontend Developer: endpoint mana yang harus dipanggil di setiap halaman.
+### **Doctor Dashboard (2)**
+6. **Doctor Queue** - Today's patient queue
+7. **EMR Page** - Input medical records (SOAP) + prescriptions
 
-#### A. Marketing / Public Pages (No Auth / Tenant Creation)
-
-| Page UI | Action | Backend Endpoint |
-|---------|--------|------------------|
-| Landing Page | - | (Static Content) |
-| Pricing Page | - | (Static Content) |
-| Login Page | Submit Login | `POST /api/auth/login` |
-| Sign Up Page | 1. Submit Data Klinik<br>2. Auto-login (after signup) | `POST /api/tenants`<br>`POST /api/auth/login` |
-| Onboarding | Update Settings | `PATCH /api/tenants/:slug` |
-
-#### B. Patient Portal
-
-| Page UI | Action | Backend Endpoint |
-|---------|--------|------------------|
-| Register/Login | Auth Pasien | `POST /api/auth/login` (Role: Patient) |
-| Booking Appointment | 1. Get Clinic Info<br>2. List Doctors<br>3. Submit Booking | `GET /api/tenants/:slug`<br>`GET /api/:tenant/users` (Role: Doctor)<br>`POST /api/:tenant/appointments` |
-| Dashboard | List Appointments | `GET /api/:tenant/appointments` (Filter: My ID) |
-| Medical Records | View History | `GET /api/:tenant/patients/:id/records` |
-
-#### C. Admin/Staff Dashboard
-
-| Page UI | Action | Backend Endpoint |
-|---------|--------|------------------|
-| Dashboard | Load Stats | `GET /api/:tenant/analytics/dashboard` |
-| Queue Management | 1. List Queue<br>2. Check-in Patient | `GET /api/:tenant/appointments` (Filter: Today)<br>`POST /api/:tenant/appointments/:id/checkin` |
-| Patient Management | CRUD Patient | `GET, POST, PATCH, DELETE /api/:tenant/patients` |
-
-#### D. Doctor Dashboard
-
-| Page UI | Action | Backend Endpoint |
-|---------|--------|------------------|
-| Queue | Call Patient | `PATCH /api/:tenant/appointments/:id` (Status: In Progress) |
-| EMR Page | 1. Input SOAP<br>2. Input Resep | `POST /api/:tenant/records`<br>`POST /api/:tenant/prescriptions` |
-
-#### E. Pharmacy Dashboard
-
-| Page UI | Action | Backend Endpoint |
-|---------|--------|------------------|
-| Prescription List | View Incoming | `GET /api/:tenant/prescriptions` (Status: Pending) |
-| Process | Mark Done | `PATCH /api/:tenant/prescriptions/:id/status` |
-| Inventory | Manage Stock | `GET, POST, PATCH /api/:tenant/inventory` |
+### **Pharmacy Dashboard (1)**
+8. **Pharmacy Queue** - Process prescriptions + basic inventory management
 
 ---
 
-## 🔌 Backend API Specification (Target 5 Days)
+## 🔌 Backend API Specification (25 Endpoints)
 
-Berikut adalah daftar endpoint utama yang harus diimplementasikan.
-
-### 1. Authentication
+### 1. Authentication (3 endpoints)
 ```http
-POST   /api/auth/register          # Register new admin/user
-POST   /api/auth/login             # Login & Get Token
-POST   /api/auth/refresh-token     # Refresh JWT
-POST   /api/auth/logout            # Logout
-GET    /api/auth/me                # Get current user profile
+POST   /api/auth/register      # Register new user
+POST   /api/auth/login         # Login (returns JWT token)
+GET    /api/auth/me            # Get current user profile
 ```
 
-### 2. Tenant Management (Clinic)
+### 2. Tenant Management (2 endpoints)
 ```http
-POST   /api/tenants                # Create new clinic
-GET    /api/tenants/:slug          # Get tenant info
-PATCH  /api/tenants/:slug          # Update tenant settings
+POST   /api/tenants            # Create new clinic (signup)
+GET    /api/tenants/:slug      # Get clinic info
 ```
 
-### 3. User Management
+### 3. Patient Management (5 endpoints)
 ```http
-GET    /api/:tenant/users          # List users (admin view)
-POST   /api/:tenant/users          # Create user (staff/doctor)
-GET    /api/:tenant/users/:id      # Get user detail
-PATCH  /api/:tenant/users/:id      # Update user
-DELETE /api/:tenant/users/:id      # Delete user
+GET    /api/:tenant/patients           # List all patients
+POST   /api/:tenant/patients           # Register new patient
+GET    /api/:tenant/patients/:id       # Get patient detail
+PATCH  /api/:tenant/patients/:id       # Update patient info
+DELETE /api/:tenant/patients/:id       # Delete patient record
 ```
 
-### 4. Patient Management
+### 4. Appointment Management (5 endpoints)
 ```http
-GET    /api/:tenant/patients          # List patients
-POST   /api/:tenant/patients          # Register new patient
-GET    /api/:tenant/patients/:id      # Get patient detail
-PATCH  /api/:tenant/patients/:id      # Update patient info
-DELETE /api/:tenant/patients/:id      # Delete patient record
-GET    /api/:tenant/patients/search   # Search patients
+GET    /api/:tenant/appointments           # List appointments (filter by date/doctor)
+POST   /api/:tenant/appointments           # Create new appointment
+GET    /api/:tenant/appointments/:id       # Get appointment detail
+PATCH  /api/:tenant/appointments/:id       # Update status (checkin/complete)
+DELETE /api/:tenant/appointments/:id       # Cancel appointment
 ```
 
-### 5. Appointment Management
+### 5. Medical Records / EMR (3 endpoints)
 ```http
-GET    /api/:tenant/appointments              # List appointments
-POST   /api/:tenant/appointments              # Create appointment
-GET    /api/:tenant/appointments/:id          # Get detail
-PATCH  /api/:tenant/appointments/:id          # Update (Reschedule)
-DELETE /api/:tenant/appointments/:id          # Cancel
-POST   /api/:tenant/appointments/:id/checkin  # Check-in patient
+GET    /api/:tenant/patients/:id/records   # Get patient medical history
+POST   /api/:tenant/records                # Create new SOAP record
+GET    /api/:tenant/records/:id            # Get record detail
 ```
 
-### 6. Medical Records (EMR)
+### 6. Prescriptions (4 endpoints)
 ```http
-GET    /api/:tenant/patients/:id/records      # List patient history
-POST   /api/:tenant/records                   # Create new SOAP record
-GET    /api/:tenant/records/:id               # Get record detail
-PATCH  /api/:tenant/records/:id               # Update record
+GET    /api/:tenant/prescriptions          # List prescriptions (filter by status)
+POST   /api/:tenant/prescriptions          # Create prescription from EMR
+GET    /api/:tenant/prescriptions/:id      # Get prescription detail
+PATCH  /api/:tenant/prescriptions/:id      # Update status (process/complete)
 ```
 
-### 7. Prescriptions & Pharmacy
+### 7. Inventory Management (3 endpoints)
 ```http
-GET    /api/:tenant/prescriptions             # List prescriptions
-POST   /api/:tenant/prescriptions             # Create prescription
-GET    /api/:tenant/prescriptions/:id         # Get detail
-PATCH  /api/:tenant/prescriptions/:id/status  # Update status (pharmacy)
-GET    /api/:tenant/inventory                 # List drugs inventory
-POST   /api/:tenant/inventory                 # Add new drug
-PATCH  /api/:tenant/inventory/:id             # Update stock/info
-GET    /api/:tenant/inventory/low-stock       # Low stock alerts
-POST   /api/:tenant/inventory/:id/restock     # Record restock
+GET    /api/:tenant/inventory              # List all drugs
+POST   /api/:tenant/inventory              # Add new drug
+PATCH  /api/:tenant/inventory/:id          # Update drug stock
 ```
 
-### 8. Billing & Analytics
-```http
-GET    /api/:tenant/invoices              # List invoices
-POST   /api/:tenant/invoices              # Create invoice
-GET    /api/:tenant/invoices/:id          # Get detail
-PATCH  /api/:tenant/invoices/:id/pay      # Mark as paid
-GET    /api/:tenant/analytics/dashboard   # Dashboard stats
-GET    /api/:tenant/analytics/revenue     # Revenue report
-GET    /api/:tenant/analytics/patients    # Patient stats
+---
+
+## 🗺️ Page-to-API Mapping Guide
+
+### PAGE 1: Landing Page
+| Component | Action | Backend Endpoint |
+|-----------|--------|------------------|
+| Hero Section | - | (Static content) |
+| CTA Button | Click | → Navigate to Login Page |
+
+### PAGE 2: Login Page
+| Component | Action | Backend Endpoint |
+|-----------|--------|------------------|
+| Login Form | Submit credentials | `POST /api/auth/login` |
+| After Login | Get user info | `GET /api/auth/me` |
+
+**Redirect Logic:**
+- `role = ADMIN` → Admin Dashboard
+- `role = DOCTOR` → Doctor Queue
+- `role = PHARMACIST` → Pharmacy Queue
+
+### PAGE 3: Admin Dashboard
+| Component | Action | Backend Endpoint |
+|-----------|--------|------------------|
+| Stats Cards | Load on mount | Count from `GET /api/:tenant/appointments?date=today` |
+| Today's Queue | Load appointments | `GET /api/:tenant/appointments?date=today` |
+| Check-in Button | Click | `PATCH /api/:tenant/appointments/:id` (status: CHECKED_IN) |
+| Add Patient Modal | Submit | `POST /api/:tenant/patients` |
+
+### PAGE 4: Patient List
+| Component | Action | Backend Endpoint |
+|-----------|--------|------------------|
+| Table | Load patients | `GET /api/:tenant/patients` |
+| Add Button | Open modal | - |
+| Add Modal | Submit form | `POST /api/:tenant/patients` |
+| Edit Button | Load data | `GET /api/:tenant/patients/:id` |
+| Edit Modal | Submit changes | `PATCH /api/:tenant/patients/:id` |
+| Delete Button | Confirm & delete | `DELETE /api/:tenant/patients/:id` |
+| View History | Click patient name | `GET /api/:tenant/patients/:id/records` |
+
+### PAGE 5: Appointment List
+| Component | Action | Backend Endpoint |
+|-----------|--------|------------------|
+| Table | Load appointments | `GET /api/:tenant/appointments` |
+| Filter by Date | Select date | `GET /api/:tenant/appointments?date={date}` |
+| Filter by Doctor | Select doctor | `GET /api/:tenant/appointments?doctorId={id}` |
+| Add Modal | Submit form | `POST /api/:tenant/appointments` |
+| Edit Modal | Update appointment | `PATCH /api/:tenant/appointments/:id` |
+| Cancel Button | Delete | `DELETE /api/:tenant/appointments/:id` |
+
+### PAGE 6: Doctor Queue
+| Component | Action | Backend Endpoint |
+|-----------|--------|------------------|
+| Queue List | Load today's appointments | `GET /api/:tenant/appointments?doctorId={me}&date=today` |
+| Call Patient Button | Update status | `PATCH /api/:tenant/appointments/:id` (status: IN_PROGRESS) |
+| Start Consultation | Click patient | → Navigate to EMR Page |
+
+### PAGE 7: EMR Page
+| Component | Action | Backend Endpoint |
+|-----------|--------|------------------|
+| Patient Info Header | Load patient | `GET /api/:tenant/patients/:id` |
+| Medical History | Load history | `GET /api/:tenant/patients/:id/records` |
+| SOAP Form | Input data | (Local state) |
+| Save SOAP Button | Submit | `POST /api/:tenant/records` |
+| Prescription Form | Add drugs | (Local state - hardcoded drug list for MVP) |
+| Send to Pharmacy | Submit | `POST /api/:tenant/prescriptions` |
+| Complete Button | Mark done | `PATCH /api/:tenant/appointments/:id` (status: COMPLETED) |
+
+### PAGE 8: Pharmacy Queue
+| Component | Action | Backend Endpoint |
+|-----------|--------|------------------|
+| Prescription List | Load pending | `GET /api/:tenant/prescriptions?status=PENDING` |
+| Prescription Detail | Click prescription | `GET /api/:tenant/prescriptions/:id` |
+| Process Button | Start processing | `PATCH /api/:tenant/prescriptions/:id` (status: PROCESSING) |
+| Complete Button | Mark done | `PATCH /api/:tenant/prescriptions/:id` (status: COMPLETED) |
+| Inventory Tab | Load drugs | `GET /api/:tenant/inventory` |
+| Add Drug | Quick add | `POST /api/:tenant/inventory` |
+| Update Stock | Inline edit | `PATCH /api/:tenant/inventory/:id` |
+
+---
+
+## 📊 Database Schema (Prisma)
+```prisma
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  
+  users         User[]
+  patients      Patient[]
+  appointments  Appointment[]
+  records       MedicalRecord[]
+  prescriptions Prescription[]
+  inventory     Drug[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  tenantId  String
+  email     String
+  password  String
+  name      String
+  role      String   // ADMIN, DOCTOR, PHARMACIST
+  
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  appointments  Appointment[]
+  records       MedicalRecord[]
+  
+  @@unique([tenantId, email])
+}
+
+model Patient {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  phone     String
+  dob       DateTime
+  gender    String
+  
+  tenant       Tenant          @relation(fields: [tenantId], references: [id])
+  appointments Appointment[]
+  records      MedicalRecord[]
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  tenantId  String
+  patientId String
+  doctorId  String
+  date      DateTime
+  timeSlot  String
+  status    String   // SCHEDULED, CHECKED_IN, IN_PROGRESS, COMPLETED
+  
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id])
+  doctor  User    @relation(fields: [doctorId], references: [id])
+}
+
+model MedicalRecord {
+  id          String   @id @default(cuid())
+  tenantId    String
+  patientId   String
+  doctorId    String
+  visitDate   DateTime @default(now())
+  subjective  String?
+  objective   String?
+  assessment  String?
+  plan        String?
+  
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  patient       Patient        @relation(fields: [patientId], references: [id])
+  doctor        User           @relation(fields: [doctorId], references: [id])
+  prescriptions Prescription[]
+}
+
+model Prescription {
+  id        String   @id @default(cuid())
+  tenantId  String
+  recordId  String
+  status    String   // PENDING, PROCESSING, COMPLETED
+  items     Json     // [{drugName, dosage, frequency}]
+  
+  tenant Tenant        @relation(fields: [tenantId], references: [id])
+  record MedicalRecord @relation(fields: [recordId], references: [id])
+}
+
+model Drug {
+  id       String @id @default(cuid())
+  tenantId String
+  name     String
+  stock    Int    @default(0)
+  unit     String
+  
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
 ```
 
 ---
@@ -393,6 +487,28 @@ Aplikasi siap diakses:
 **4. Prisma Error: `P1001: Can't reach database server`**
 
 * **Solusi:** Cek file `backend/.env`. Pastikan `DATABASE_URL` menggunakan `localhost` (jika run di host) dan password sesuai `docker-compose.yml` (`password123`).
+
+---
+
+## 📝 Development Workflow
+
+### Daily Development Flow
+1. Start database: `docker compose up -d`
+2. Run both servers: `npm run dev`
+3. Access Prisma Studio (if needed): `cd backend && npx prisma studio`
+4. Make changes to code (hot reload enabled)
+5. Stop servers: `Ctrl + C`
+
+### Making Database Changes
+1. Edit `backend/prisma/schema.prisma`
+2. Run migration: `cd backend && npx prisma migrate dev --name your_change_name`
+3. Prisma Client will auto-regenerate
+
+### Adding New UI Components
+```bash
+cd frontend
+pnpm dlx shadcn@latest add button    # Example: add button component
+```
 
 ---
 
