@@ -68,11 +68,123 @@ medicloud/
 │
 └── frontend/               # 💅 Client Side
     ├── src/
-    │   ├── components/ui/  # Shadcn Components
-    │   ├── lib/utils.ts    # Utility for Tailwind class merge
-    │   └── ...
-    └── .env                # Frontend Config
+    │   ├── components/
+    │   │   ├── ui/             # Shadcn Components
+    │   │   ├── shared/         # Shared components (Logo, etc)
+    │   │   └── layouts/        # Layout components
+    │   │       ├── PublicLayout.tsx   # Marketing layout
+    │   │       └── AppLayout.tsx      # Dashboard layout
+    │   ├── features/           # Feature modules
+    │   │   ├── auth/           # Authentication features
+    │   │   ├── marketing/      # Landing page components
+    │   │   ├── dashboard/      # Dashboard widgets
+    │   │   ├── patient/        # Patient management
+    │   │   ├── appointment/    # Appointment features
+    │   │   └── emr/            # Medical records
+    │   ├── pages/              # Page components
+    │   │   ├── public/         # Marketing pages
+    │   │   ├── app/            # Application pages
+    │   │   └── auth/           # Auth pages
+    │   ├── lib/
+    │   │   ├── api.ts          # Axios instance
+    │   │   └── utils.ts        # Tailwind utilities
+    │   └── App.tsx             # Routing setup
+    └── .env                    # Frontend Config
 ```
+
+---
+
+## 🗺️ Frontend Structure & API Mapping
+
+### Frontend Directory Structure (Detailed)
+```text
+frontend/src/
+├── components/
+│   ├── ui/                     # Shadcn components (Button, Card, Input)
+│   ├── shared/                 # Components shared across Public & App (Logo, etc)
+│   ├── layouts/                # 👈 KEY: Layout Separation
+│   │   ├── PublicLayout.tsx    # Marketing Layout (Transparent Navbar, Large Footer)
+│   │   └── AppLayout.tsx       # Dashboard Layout (Left Sidebar, Top User Bar)
+│
+├── features/                   # Feature Logic (By Module)
+│   ├── auth/                   # Login/Register forms
+│   ├── marketing/              # Landing Page components (Hero, PricingCard)
+│   ├── dashboard/              # Dashboard stats widgets
+│   ├── patient/                # Patient tables & forms
+│   ├── appointment/            # Calendar & Booking forms
+│   └── emr/                    # Medical record forms
+│
+├── pages/                      # 👈 PAGE ORGANIZATION
+│   ├── public/                 # Marketing Pages (Landing Site)
+│   │   ├── LandingPage.tsx
+│   │   ├── PricingPage.tsx
+│   │   ├── FeaturesPage.tsx
+│   │   └── SignupPage.tsx
+│   │
+│   ├── app/                    # Application Pages (After Login)
+│   │   ├── admin/
+│   │   │   ├── AdminDashboard.tsx
+│   │   │   └── PatientList.tsx
+│   │   ├── doctor/
+│   │   │   └── DoctorDashboard.tsx
+│   │   └── patient/
+│   │       └── PatientPortal.tsx
+│   │
+│   └── auth/                   # Auth Pages (Login/Forgot Password)
+│       └── LoginPage.tsx
+│
+├── lib/
+│   ├── api.ts                  # Axios Instance
+│   └── utils.ts                # Tailwind merge utility
+│
+└── App.tsx                     # Routing Setup
+```
+
+### Page UI to Backend API Mapping
+
+Panduan untuk Frontend Developer: endpoint mana yang harus dipanggil di setiap halaman.
+
+#### A. Marketing / Public Pages (No Auth / Tenant Creation)
+
+| Page UI | Action | Backend Endpoint |
+|---------|--------|------------------|
+| Landing Page | - | (Static Content) |
+| Pricing Page | - | (Static Content) |
+| Login Page | Submit Login | `POST /api/auth/login` |
+| Sign Up Page | 1. Submit Data Klinik<br>2. Auto-login (after signup) | `POST /api/tenants`<br>`POST /api/auth/login` |
+| Onboarding | Update Settings | `PATCH /api/tenants/:slug` |
+
+#### B. Patient Portal
+
+| Page UI | Action | Backend Endpoint |
+|---------|--------|------------------|
+| Register/Login | Auth Pasien | `POST /api/auth/login` (Role: Patient) |
+| Booking Appointment | 1. Get Clinic Info<br>2. List Doctors<br>3. Submit Booking | `GET /api/tenants/:slug`<br>`GET /api/:tenant/users` (Role: Doctor)<br>`POST /api/:tenant/appointments` |
+| Dashboard | List Appointments | `GET /api/:tenant/appointments` (Filter: My ID) |
+| Medical Records | View History | `GET /api/:tenant/patients/:id/records` |
+
+#### C. Admin/Staff Dashboard
+
+| Page UI | Action | Backend Endpoint |
+|---------|--------|------------------|
+| Dashboard | Load Stats | `GET /api/:tenant/analytics/dashboard` |
+| Queue Management | 1. List Queue<br>2. Check-in Patient | `GET /api/:tenant/appointments` (Filter: Today)<br>`POST /api/:tenant/appointments/:id/checkin` |
+| Patient Management | CRUD Patient | `GET, POST, PATCH, DELETE /api/:tenant/patients` |
+
+#### D. Doctor Dashboard
+
+| Page UI | Action | Backend Endpoint |
+|---------|--------|------------------|
+| Queue | Call Patient | `PATCH /api/:tenant/appointments/:id` (Status: In Progress) |
+| EMR Page | 1. Input SOAP<br>2. Input Resep | `POST /api/:tenant/records`<br>`POST /api/:tenant/prescriptions` |
+
+#### E. Pharmacy Dashboard
+
+| Page UI | Action | Backend Endpoint |
+|---------|--------|------------------|
+| Prescription List | View Incoming | `GET /api/:tenant/prescriptions` (Status: Pending) |
+| Process | Mark Done | `PATCH /api/:tenant/prescriptions/:id/status` |
+| Inventory | Manage Stock | `GET, POST, PATCH /api/:tenant/inventory` |
 
 ---
 
