@@ -113,6 +113,20 @@ beforeAll(async () => {
         });
         testData.patientId = patient.id;
 
+        // Create test medical record
+        const record = await prisma.medicalRecord.create({
+            data: {
+                tenantId: tenant.id,
+                patientId: patient.id,
+                doctorId: doctorUser.id,
+                subjective: 'Test complaint',
+                objective: 'Test findings',
+                assessment: 'Test diagnosis',
+                plan: 'Test treatment plan',
+            },
+        });
+        testData.recordId = record.id;
+
         console.log('Test setup completed successfully');
     } catch (error) {
         console.error('Test setup failed:', error);
