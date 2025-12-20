@@ -1,6 +1,6 @@
 // frontend/src/pages/public/LoginPage.tsx
 import { LoginForm } from "@/features/auth/LoginForm";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 
 const LoginPage = () => {
@@ -17,6 +17,14 @@ const LoginPage = () => {
         <CardContent>
           <LoginForm />
         </CardContent>
+        <CardFooter className="flex justify-center">
+          <p className="text-sm text-gray-600">
+            Belum punya akun?{" "}
+            <Link to="/register" className="font-medium text-blue-600 hover:underline">
+              Daftar di sini
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );
