@@ -7,7 +7,7 @@ import routes from './routes';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 
 // Load environment variables from root Medicloud folder
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 export const app: Application = express();
 export const prisma = new PrismaClient();

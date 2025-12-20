@@ -1,0 +1,8 @@
+node_modules
+dist
+.git
+.env
+
+# Balik ke root dan jalankan docker
+cd ..
+docker compose up -d --build

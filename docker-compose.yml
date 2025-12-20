@@ -32,3 +32,14 @@ services:
     depends_on:
       - backend
       - frontend
+
+  db:
+    image: postgres:15
+    container_name: medicloud-db
+    restart: always
+    environment:
+      POSTGRES_USER: medicloud
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: medicloud_db
+    ports:
+      - "5432:5432"
