@@ -2,8 +2,14 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/public/LandingPage';
 import LoginPage from './pages/public/LoginPage';
-import RegisterPage from './pages/public/RegisterPage'; // <-- Import halaman baru
 import { Toaster } from "@/components/ui/toaster";
+
+// Layouts & Routes
+import { AppLayout } from './components/layouts/AppLayout';
+import { ProtectedRoute } from './router/ProtectedRoute';
+
+// Pages
+import AdminDashboardPage from './pages/admin/AdminDashboardPage'; 
 
 function App() {
   return (
@@ -13,12 +19,15 @@ function App() {
           {/* --- Public Routes --- */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} /> {/* <-- Daftarkan route baru */}
 
-          {/* --- Dashboard Routes (contoh) --- */}
-          <Route path="/admin/dashboard" element={<div>Admin Dashboard</div>} />
-          <Route path="/doctor/queue" element={<div>Doctor Queue</div>} />
-          <Route path="/pharmacy/queue" element={<div>Pharmacy Queue</div>} />
+          {/* --- Protected Admin Routes --- */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppLayout />}>
+              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="/admin/patients" element={<div>Patient List Page</div>} />
+              <Route path="/admin/appointments" element={<div>Appointment List Page</div>} />
+            </Route>
+          </Route>
           
         </Routes>
       </Router>
