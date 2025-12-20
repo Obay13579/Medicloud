@@ -2,6 +2,8 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 
+import tenantRoutes from './routes/tenantRoutes';
+
 export const app: Application = express();
 export const prisma = new PrismaClient();
 
@@ -36,3 +38,6 @@ app.get('/api/test-db', async (req: Request, res: Response) => {
     });
   }
 });
+
+// 3. Tenant Routes
+app.use('/api/tenants', tenantRoutes);
