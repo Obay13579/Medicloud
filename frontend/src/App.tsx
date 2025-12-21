@@ -12,6 +12,7 @@ import { ProtectedRoute } from './router/ProtectedRoute';
 // Pages
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'; 
 import PatientListPage from './pages/admin/PatientListPage';
+import AppointmentListPage from './pages/admin/AppointmentListPage';
 
 function App() {
   return (
@@ -28,7 +29,7 @@ function App() {
             <Route element={<AppLayout />}>
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
               <Route path="/admin/patients" element={<PatientListPage />} />
-              <Route path="/admin/appointments" element={<div>Appointment List Page</div>} />
+              <Route path="/admin/appointments" element={<AppointmentListPage />} />
             </Route>
           </Route>
           
