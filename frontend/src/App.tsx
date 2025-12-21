@@ -13,6 +13,7 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import PatientListPage from './pages/admin/PatientListPage';
 import AppointmentListPage from './pages/admin/AppointmentListPage';
 import DoctorQueuePage from './pages/doctor/DoctorQueuePage';
+import EmrPage from './pages/doctor/EmrPage'; // <-- 1. IMPORT HALAMAN EMR
 import { useAuthStore } from './stores/authStore';
 
 // --- KOMPONEN BARU UNTUK REDIRECT OTOMATIS ---
@@ -52,7 +53,7 @@ function App() {
           <Route element={<RoleProtectedRoute allowedRoles={['DOCTOR']} />}>
             <Route element={<AppLayout />}>
               <Route path="/doctor/queue" element={<DoctorQueuePage />} />
-              <Route path="/doctor/emr/:appointmentId/:patientId" element={<div>EMR Page</div>} />
+              <Route path="/doctor/emr/:appointmentId/:patientId" element={<EmrPage />} />
             </Route>
           </Route>
 
