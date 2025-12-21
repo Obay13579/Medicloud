@@ -6,6 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { PlusCircle } from 'lucide-react';
@@ -36,6 +38,15 @@ export default function PharmacyQueuePage() {
   const [isLoadingQueue, setIsLoadingQueue] = useState(true);
   const [isLoadingInventory, setIsLoadingInventory] = useState(true);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
+  
+  // State untuk Add Drug Modal
+  const [isAddDrugModalOpen, setIsAddDrugModalOpen] = useState(false);
+  const [newDrug, setNewDrug] = useState({ name: '', stock: '', unit: '' });
+  
+  // State untuk Update Stock Modal
+  const [isUpdateStockModalOpen, setIsUpdateStockModalOpen] = useState(false);
+  const [selectedDrug, setSelectedDrug] = useState<Drug | null>(null);
+  const [newStockAmount, setNewStockAmount] = useState('');
 
   const fetchPrescriptions = useCallback(async () => {
     if (!tenantSlug) return;
@@ -80,6 +91,52 @@ export default function PharmacyQueuePage() {
     }
   };
 
+  // Handler untuk Add Drug
+  const handleAddDrug = async () => {
+    if (!newDrug.name || !newDrug.stock || !newDrug.unit) {
+      toast({ title: "Error", description: "Semua field harus diisi.", variant: "destructive" });
+      return;
+    }
+    
+    if (!tenantSlug) return;
+    try {
+      await api.post(`/api/${tenantSlug}/inventory`, newDrug);
+      toast({ title: "Success", description: "Obat baru berhasil ditambahkan." });
+      setIsAddDrugModalOpen(false);
+      setNewDrug({ name: '', stock: '', unit: '' });
+      await fetchInventory();
+    } catch (error) {
+      toast({ title: "Error", description: "Gagal menambahkan obat.", variant: "destructive" });
+    }
+  };
+
+  // Handler untuk Update Stock
+  const handleUpdateStock = async () => {
+    if (!selectedDrug || !newStockAmount) {
+      toast({ title: "Error", description: "Jumlah stock harus diisi.", variant: "destructive" });
+      return;
+    }
+    
+    if (!tenantSlug) return;
+    try {
+      await api.patch(`/api/${tenantSlug}/inventory/${selectedDrug.id}`, { stock: parseInt(newStockAmount) });
+      toast({ title: "Success", description: `Stock ${selectedDrug.name} berhasil diperbarui.` });
+      setIsUpdateStockModalOpen(false);
+      setSelectedDrug(null);
+      setNewStockAmount('');
+      await fetchInventory();
+    } catch (error) {
+      toast({ title: "Error", description: "Gagal memperbarui stock.", variant: "destructive" });
+    }
+  };
+
+  // Open Update Stock Modal
+  const openUpdateStockModal = (drug: Drug) => {
+    setSelectedDrug(drug);
+    setNewStockAmount(drug.stock.toString());
+    setIsUpdateStockModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Pharmacy Dashboard</h1>
@@ -119,8 +176,7 @@ export default function PharmacyQueuePage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Drug Inventory</CardTitle>
-              {/* Fitur Add Drug bisa ditambahkan di sini dengan modal baru */}
-              <Button size="sm"><PlusCircle className="mr-2 h-4 w-4"/>Add Drug</Button>
+              <Button size="sm" onClick={() => setIsAddDrugModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Add Drug</Button>
             </CardHeader>
             <CardContent>
                <Table>
@@ -133,7 +189,7 @@ export default function PharmacyQueuePage() {
                         <TableCell>{drug.stock}</TableCell>
                         <TableCell>{drug.unit}</TableCell>
                         <TableCell>
-                          <Button size="sm" variant="outline">Update Stock</Button>
+                          <Button size="sm" variant="outline" onClick={() => openUpdateStockModal(drug)}>Update Stock</Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -169,6 +225,80 @@ export default function PharmacyQueuePage() {
               <Button variant="outline" onClick={() => handleUpdateStatus(selectedPrescription!.id, 'PROCESSING')}>Mark as Processing</Button>
               <Button onClick={() => handleUpdateStatus(selectedPrescription!.id, 'COMPLETED')}>Mark as Completed</Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Drug Modal */}
+      <Dialog open={isAddDrugModalOpen} onOpenChange={setIsAddDrugModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Drug</DialogTitle>
+            <DialogDescription>Tambahkan obat baru ke inventaris.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="drugName">Drug Name</Label>
+              <Input 
+                id="drugName" 
+                placeholder="e.g. Paracetamol 500mg" 
+                value={newDrug.name}
+                onChange={(e) => setNewDrug(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="stock">Initial Stock</Label>
+              <Input 
+                id="stock" 
+                type="number" 
+                placeholder="e.g. 100" 
+                value={newDrug.stock}
+                onChange={(e) => setNewDrug(prev => ({ ...prev, stock: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="unit">Unit</Label>
+              <Input 
+                id="unit" 
+                placeholder="e.g. Tablet, Kapsul, Botol" 
+                value={newDrug.unit}
+                onChange={(e) => setNewDrug(prev => ({ ...prev, unit: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDrugModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddDrug}>Add Drug</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Stock Modal */}
+      <Dialog open={isUpdateStockModalOpen} onOpenChange={setIsUpdateStockModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Stock</DialogTitle>
+            <DialogDescription>Update stock untuk: {selectedDrug?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentStock">Current Stock</Label>
+              <Input id="currentStock" value={selectedDrug?.stock || 0} disabled />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newStock">New Stock Amount</Label>
+              <Input 
+                id="newStock" 
+                type="number" 
+                placeholder="Enter new stock amount" 
+                value={newStockAmount}
+                onChange={(e) => setNewStockAmount(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUpdateStockModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleUpdateStock}>Update Stock</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
