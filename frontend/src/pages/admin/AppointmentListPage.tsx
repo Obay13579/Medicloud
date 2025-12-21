@@ -133,9 +133,7 @@ export default function AppointmentListPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Filter Appointments</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Filters</CardTitle></CardHeader>
         <CardContent className="flex items-center gap-4">
             <Popover>
               <PopoverTrigger asChild>
@@ -157,19 +155,14 @@ export default function AppointmentListPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Appointment List</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Appointment List</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader><TableRow><TableHead>Patient</TableHead><TableHead>Doctor</TableHead><TableHead>Date</TableHead><TableHead>Time</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
             <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center">Loading appointments...</TableCell></TableRow>
-              ) : appointments.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center">No appointments found for the selected filter.</TableCell></TableRow>
-              ) : (
-                appointments.map((apt) => (
+              {isLoading ? (<TableRow><TableCell colSpan={6} className="text-center">Loading...</TableCell></TableRow>)
+                : appointments.length === 0 ? (<TableRow><TableCell colSpan={6} className="text-center">No appointments found.</TableCell></TableRow>)
+                : appointments.map((apt) => (
                   <TableRow key={apt.id}>
                     <TableCell>{apt.patient.name}</TableCell>
                     <TableCell>{apt.doctor.name}</TableCell>
@@ -183,8 +176,7 @@ export default function AppointmentListPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                ))}
             </TableBody>
           </Table>
         </CardContent>

@@ -29,10 +29,10 @@ export const useAuthStore = create<AuthState>()(
       // --- DATA DUMMY UNTUK TESTING ---
       token: 'dummy-secret-token-for-testing',
       user: {
-        id: 'user-admin-01',
-        name: 'Administrator',
-        email: 'admin@testing.com',
-        role: 'ADMIN',
+        id: 'user-doctor-01',
+        name: 'Doctor Testing',
+        email: 'doctor@testing.com',
+        role: 'DOCTOR',
 
         tenant: {
           id: 'tenant-01',
