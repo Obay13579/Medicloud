@@ -13,7 +13,9 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import PatientListPage from './pages/admin/PatientListPage';
 import AppointmentListPage from './pages/admin/AppointmentListPage';
 import DoctorQueuePage from './pages/doctor/DoctorQueuePage';
-import EmrPage from './pages/doctor/EmrPage'; // <-- 1. IMPORT HALAMAN EMR
+import EmrPage from './pages/doctor/EmrPage';
+import PharmacyQueuePage from './pages/pharmacy/PharmacyQueuePage';
+
 import { useAuthStore } from './stores/authStore';
 
 // --- KOMPONEN BARU UNTUK REDIRECT OTOMATIS ---
@@ -24,6 +26,9 @@ const HomeRedirect = () => {
   }
   if (user?.role === 'DOCTOR') {
     return <Navigate to="/doctor/queue" replace />;
+  }
+  if (user?.role === 'PHARMACIST') {
+    return <Navigate to="/pharmacy/queue" replace />;
   }
   // Tambahkan peran lain di sini jika perlu
   // ...
@@ -54,6 +59,12 @@ function App() {
             <Route element={<AppLayout />}>
               <Route path="/doctor/queue" element={<DoctorQueuePage />} />
               <Route path="/doctor/emr/:appointmentId/:patientId" element={<EmrPage />} />
+            </Route>
+          </Route>
+
+          <Route element={<RoleProtectedRoute allowedRoles={['PHARMACIST']} />}>
+            <Route element={<AppLayout />}>
+              <Route path="/pharmacy/queue" element={<PharmacyQueuePage />} />
             </Route>
           </Route>
 

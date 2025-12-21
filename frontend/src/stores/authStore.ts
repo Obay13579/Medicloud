@@ -7,7 +7,6 @@ interface User {
   email: string;
   name: string;
   role: 'ADMIN' | 'DOCTOR' | 'PHARMACIST';
-
   tenant: {
     id: string;
     name: string;
@@ -22,31 +21,17 @@ interface AuthState {
   logout: () => void;
 }
 
-// Untuk Tes Login
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      // --- DATA DUMMY UNTUK TESTING ---
-      token: 'dummy-secret-token-for-testing',
-      user: {
-        id: 'user-doctor-01',
-        name: 'Doctor Testing',
-        email: 'doctor@testing.com',
-        role: 'DOCTOR',
-
-        tenant: {
-          id: 'tenant-01',
-          slug: 'klinik-sehat-jaya', // Ini slug yang akan dipakai di URL API
-          name: 'Klinik Sehat Jaya'
-        }
-      },
-      // --- AKHIR DATA DUMMY ---
+      token: null,
+      user: null,
 
       login: (token, user) => set({ token, user }),
       logout: () => set({ token: null, user: null }),
     }),
     {
-      name: 'auth-storage',
+      name: 'auth-storage', 
       storage: createJSONStorage(() => localStorage),
     }
   )
