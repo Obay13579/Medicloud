@@ -2,6 +2,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/public/LandingPage';
 import LoginPage from './pages/public/LoginPage';
+import RegisterPage from './pages/public/RegisterPage';
 import { Toaster } from "@/components/ui/toaster";
 
 // Layouts & Routes
@@ -18,7 +19,6 @@ import PharmacyQueuePage from './pages/pharmacy/PharmacyQueuePage';
 
 import { useAuthStore } from './stores/authStore';
 
-// --- KOMPONEN BARU UNTUK REDIRECT OTOMATIS ---
 const HomeRedirect = () => {
   const { user } = useAuthStore();
   if (user?.role === 'ADMIN') {
@@ -44,6 +44,7 @@ function App() {
           {/* --- Rute Publik --- */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
           {/* --- Rute Admin (Dilindungi oleh RoleProtectedRoute) --- */}
           <Route element={<RoleProtectedRoute allowedRoles={['ADMIN']} />}>
