@@ -1,0 +1,78 @@
+name: Deploy Medicloud App
+
+# Trigger: Jalan saat push ke main atau dijalankan manual
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  # --- JOB 1: SAFETY CHECK (Jalan di Cloud GitHub) ---
+  # Tujuannya: Mencegah kode error/sampah ter-deploy ke 5 laptop sekaligus.
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check Backend (Install Only)
+        run: |
+          cd backend
+          npm install
+          # Kalau ada syntax error parah di package.json, bakal gagal disini
+
+      - name: Check Frontend (Build Test)
+        run: |
+          cd frontend
+          npm install
+          # Coba build dulu. Kalau ada error React/TypeScript, bakal gagal disini.
+          # Kita pakai --emptyOutDir agar tidak menyimpan hasil build (cuma tes doang)
+          npm run build -- --emptyOutDir
+
+  # --- JOB 2: DEPLOYMENT (Jalan di 5 Laptop Tim) ---
+  # Hanya jalan kalau 'build-check' SUKSES (Hijau)
+  deploy:
+    needs: build-check
+    strategy:
+      # Matrix: Memecah tugas ini menjadi 5 tugas paralel
+      matrix:
+        # Pastikan label ini SUDAH dipasang di Settings -> Actions -> Runners
+        runner-node: [node-1, node-2, node-3, node-4, node-5]
+      # Fail-fast false: Jika 1 laptop gagal, laptop lain tetap lanjut deploy
+      fail-fast: false
+
+    # Menggunakan Self-Hosted Runner sesuai label di matrix
+    runs-on: [self-hosted, "${{ matrix.runner-node }}"]
+
+    steps:
+      # 1. Ambil Kode Terbaru dari GitHub
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Generate file .env dari GitHub Secrets
+      # Ini krusial karena runner GitHub selalu membersihkan workspace
+      - name: Create .env file
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > .env
+
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
+
+      # 3. Build & Restart Container Aplikasi
+      # --build: Paksa rebuild image dengan kode baru
+      # backend frontend: Hanya restart service ini (Tunnel & Monitoring AMAN)
+      - name: Deploy App Containers
+        run: |
+          docker compose up -d --build backend frontend
+
+      # 4. Bersih-bersih Image Lama
+      # Mencegah harddisk laptop penuh karena tumpukan image bekas ("dangling images")
+      - name: Prune Old Images
+        run: |
+          docker image prune -f
