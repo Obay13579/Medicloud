@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
@@ -11,17 +11,21 @@ export function LoginForm() {
   const { login, isLoading, user } = useAuthStore();
   const navigate = useNavigate();
 
+  // Redirect setelah user state terupdate
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'ADMIN') navigate('/admin/dashboard');
+      else if (user.role === 'DOCTOR') navigate('/doctor/queue');
+      else if (user.role === 'PHARMACIST') navigate('/pharmacy/queue');
+    }
+  }, [user, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await login({ email, password });
-      
-      // Redirect based on role
-      if (user?.role === 'ADMIN') navigate('/admin/dashboard');
-      else if (user?.role === 'DOCTOR') navigate('/doctor/queue');
-      else if (user?.role === 'PHARMACIST') navigate('/pharmacy/queue');
     } catch (error) {
-      alert('Login failed');
+      alert('Login failed. Pastikan email dan password benar.');
     }
   };
 
@@ -32,7 +36,7 @@ export function LoginForm() {
         <Input 
           id="email"
           type="email" 
-          placeholder="Email" 
+          placeholder="email@klinik.com" 
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
