@@ -22,12 +22,9 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Path Mapping */
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    },
-    
-    "ignoreDeprecations": "6.0"
+    }
   },
   "include": ["src"]
 }
