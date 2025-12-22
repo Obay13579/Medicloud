@@ -1,3 +1,5 @@
+# backend/Dockerfile
+
 # 1. Pakai Node.js versi ringan
 FROM node:20-alpine
 

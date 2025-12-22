@@ -13,6 +13,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     ports:
       - "3000:3000"
+    networks:
+      - medicloud_network
 
   # --- Frontend App ---
   frontend:
@@ -20,15 +22,11 @@ services:
     container_name: medicloud-frontend
     restart: always
     ports:
-      - "5173:80" # Mapping port frontend
+      - "5173:80"
+    networks:
+      - medicloud_network
 
-  # --- LOAD BALANCER AGENT (Cloudflared) ---
-  tunnel:
-    image: cloudflare/cloudflared:latest
-    container_name: medicloud-tunnel
-    restart: always
-    # Token ini akan kita taruh di file .env biar aman
-    command: tunnel run --token ${TUNNEL_TOKEN}
-    depends_on:
-      - backend
-      - frontend
+networks:
+  medicloud_network:
+    name: medicloud_network
+    external: true
