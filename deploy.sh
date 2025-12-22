@@ -95,8 +95,21 @@ fi
 log_info "Applying Docker changes..."
 cd "$BASE_DIR"
 
-docker compose pull "${CONTAINER_NAME}"
-docker compose up -d "${CONTAINER_NAME}"
+# Kita paksa ganti tag image di docker-compose sesuai branch yang sedang dideploy
+# (Misal lagi di main, pake tag :main. Lagi di dev, pake tag :dev)
+export IMAGE_TAG="${TAG_NAME:-dev}"
+
+# Update backend image
+sed -i "s|image: .*/medicloud-backend:.*|image: ${DOCKERHUB_USERNAME}/medicloud-backend:${IMAGE_TAG}|" docker-compose.yml
+
+# Update frontend image
+sed -i "s|image: .*/medicloud-frontend:.*|image: ${DOCKERHUB_USERNAME}/medicloud-frontend:${IMAGE_TAG}|" docker-compose.yml
+
+# Pull semua service
+docker compose pull
+
+# Restart service
+docker compose up -d
 
 log_info "Restarting Tunnel to apply config..."
 docker compose restart tunnel
