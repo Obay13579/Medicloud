@@ -1,5 +1,25 @@
 node_modules
+
 # Keep environment variables out of version control
 .env
+.env.local
+.env.*.local
 
+# Prisma generated files
 /generated/prisma
+
+# Build output
+dist
+build
+
+# Test artifacts
+coverage
+*.log
+
+# IDE
+.idea
+.vscode
+
+# Temporary files
+tsc_output.txt
+*.tmp

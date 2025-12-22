@@ -1,7 +1,9 @@
 import { app } from './app';
 import dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+// Load .env from root Medicloud folder
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const PORT = process.env.PORT || 3000;
 
