@@ -57,12 +57,20 @@ jobs:
       # 2. Generate file .env dari GitHub Secrets
       # Ini krusial karena runner GitHub selalu membersihkan workspace
       - name: Create .env file
+        # Mapping Secret ke Variable Linux dulu (Biar aman dari tanda kutip)
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE }}
+          DB_URL: ${{ secrets.DATABASE_URL }}
+          JWT: ${{ secrets.JWT_SECRET }}
+          API_URL: ${{ secrets.VITE_API_URL }}
         run: |
-          echo "${{ secrets.ENV_FILE }}" > .env
-
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> .env
+          # Tulis variable tadi ke file .env
+          echo "$ENV_FILE_CONTENT" > .env
+          
+          # Append variable sisanya
+          echo "DATABASE_URL=$DB_URL" >> .env
+          echo "JWT_SECRET=$JWT" >> .env
+          echo "VITE_API_URL=$API_URL" >> .env
 
       # 3. Build & Restart Container Aplikasi
       # --build: Paksa rebuild image dengan kode baru
