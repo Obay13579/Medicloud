@@ -3,17 +3,20 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import api from '@/lib/api';
-import { Stethoscope, Users, CalendarPlus, Clock } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
+import { Stethoscope, Users, CalendarPlus, Clock, UserPlus } from 'lucide-react';
+import { StaffForm, type StaffFormData } from '@/features/staff/StaffForm';
 
 // Tipe data untuk appointment, sesuaikan dengan response API Anda
 interface Appointment {
-  id: string;
-  patient: { name: string };
-  doctor: { name: string };
-  timeSlot: string;
-  status: 'SCHEDULED' | 'CHECKED_IN' | 'IN_PROGRESS' | 'COMPLETED';
+    id: string;
+    patient: { name: string };
+    doctor: { name: string };
+    timeSlot: string;
+    status: 'SCHEDULED' | 'CHECKED_IN' | 'IN_PROGRESS' | 'COMPLETED';
 }
 
 interface Stats {
@@ -27,55 +30,89 @@ export default function AdminDashboardPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [stats, setStats] = useState<Stats>({ doctors: 1, patients: 0, newBookings: 0, todaySessions: 0 });
     const [isLoading, setIsLoading] = useState(true);
+    const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
+    const { user } = useAuthStore();
+
+    // Get tenant slug from authenticated user
+    const tenantSlug = user?.tenant?.slug;
+
+    const fetchDashboardData = async () => {
+        if (!tenantSlug) return;
+
+        try {
+            setIsLoading(true);
+            const today = new Date().toISOString().split('T')[0];
+            const response = await api.get(`/api/${tenantSlug}/appointments?date=${today}`);
+            const data: Appointment[] = response.data.data || response.data || [];
+
+            // Hitung statistik
+            const patientSet = new Set(data.map(apt => apt.patient?.name));
+            const doctorSet = new Set(data.map(apt => apt.doctor?.name));
+
+            setStats({
+                doctors: doctorSet.size || 1, // Asumsi minimal 1 dokter
+                patients: patientSet.size,
+                newBookings: data.filter(apt => apt.status === 'SCHEDULED').length,
+                todaySessions: data.length,
+            });
+
+            setAppointments(data);
+        } catch (error) {
+            console.error("Failed to fetch dashboard data:", error);
+            toast({ title: "Error", description: "Gagal memuat data dashboard.", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                setIsLoading(true);
-                const today = new Date().toISOString().split('T')[0];
-                const response = await api.get(`/api/appointments?date=${today}`);
-                const data: Appointment[] = response.data;
-
-                // Hitung statistik
-                const patientSet = new Set(data.map(apt => apt.patient.name));
-                const doctorSet = new Set(data.map(apt => apt.doctor.name));
-                
-                setStats({
-                    doctors: doctorSet.size || 1, // Asumsi minimal 1 dokter
-                    patients: patientSet.size,
-                    newBookings: data.filter(apt => apt.status === 'SCHEDULED').length,
-                    todaySessions: data.length,
-                });
-
-                setAppointments(data);
-            } catch (error) {
-                console.error("Failed to fetch dashboard data:", error);
-                toast({ title: "Error", description: "Gagal memuat data dashboard.", variant: "destructive" });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         fetchDashboardData();
-    }, [toast]);
-    
+    }, [tenantSlug]);
+
     const handleCheckIn = async (appointmentId: string) => {
+        if (!tenantSlug) return;
+
         try {
-            await api.patch(`/api/appointments/${appointmentId}`, { status: 'CHECKED_IN' });
+            await api.patch(`/api/${tenantSlug}/appointments/${appointmentId}`, { status: 'CHECKED_IN' });
             // Refresh data atau update state secara lokal
-            setAppointments(prev => 
+            setAppointments(prev =>
                 prev.map(apt => apt.id === appointmentId ? { ...apt, status: 'CHECKED_IN' } : apt)
             );
             toast({ title: "Success", description: "Patient has been checked in." });
         } catch (error) {
-            toast({ title: "Error", description: "Failed to check in patient.", variant: "destructive"});
+            toast({ title: "Error", description: "Failed to check in patient.", variant: "destructive" });
+        }
+    };
+
+    const handleAddStaff = async (data: StaffFormData) => {
+        if (!tenantSlug) return;
+
+        setIsSubmitting(true);
+        try {
+            await api.post(`/api/${tenantSlug}/users`, data);
+            toast({
+                title: "Berhasil!",
+                description: `${data.role === 'DOCTOR' ? 'Dokter' : 'Apoteker'} ${data.name} berhasil ditambahkan.`
+            });
+            setIsStaffModalOpen(false);
+        } catch (error: any) {
+            const message = error.response?.data?.message || "Gagal menambahkan staff.";
+            toast({ title: "Error", description: message, variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+                <Button onClick={() => setIsStaffModalOpen(true)}>
+                    <UserPlus className="mr-2 h-4 w-4" /> Add Staff
+                </Button>
+            </div>
 
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -125,6 +162,16 @@ export default function AdminDashboardPage() {
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* Add Staff Modal */}
+            <Dialog open={isStaffModalOpen} onOpenChange={setIsStaffModalOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Tambah Staff Baru</DialogTitle>
+                    </DialogHeader>
+                    <StaffForm onSubmit={handleAddStaff} isSubmitting={isSubmitting} />
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

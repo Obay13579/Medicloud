@@ -22,6 +22,7 @@ import api from "@/lib/api";
 
 // Skema validasi form
 const formSchema = z.object({
+  tenantSlug: z.string().min(1, { message: "Slug klinik wajib diisi." }),
   email: z.string().email({ message: "Format email tidak valid." }),
   password: z.string().min(6, { message: "Password minimal 6 karakter." }),
 });
@@ -34,6 +35,7 @@ export function LoginForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      tenantSlug: "",
       email: "",
       password: "",
     },
@@ -43,16 +45,13 @@ export function LoginForm() {
     try {
       // 1. Panggil API Login
       const loginResponse = await api.post('/api/auth/login', values);
-      const { token } = loginResponse.data;
+      const { token, user } = loginResponse.data.data; // Fix: data ada di dalam .data.data
 
       // 2. Simpan token sementara untuk panggil API /me
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // 3. Panggil API untuk mendapatkan data user
-      const meResponse = await api.get('/api/auth/me');
-      const user = meResponse.data;
-
-      // 4. Simpan token dan user ke Zustand (dan localStorage)
+      // 3. Simpan token dan user ke Zustand (dan localStorage)
+      // User sudah didapat dari login response, tidak perlu panggil /me lagi
       login(token, user);
 
       // 5. Redirect berdasarkan role
@@ -83,6 +82,19 @@ export function LoginForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="tenantSlug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Slug Klinik</FormLabel>
+              <FormControl>
+                <Input placeholder="klinik-sehat" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="email"

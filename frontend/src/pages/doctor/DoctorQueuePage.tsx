@@ -41,9 +41,10 @@ export default function DoctorQueuePage() {
 
       // Memanggil endpoint sesuai panduan
       const response = await api.get(`/api/${tenantSlug}/appointments?${params.toString()}`);
-      
+      const data = response.data.data || response.data || [];
+
       // Filter antrian yang relevan untuk dokter (misalnya yang belum selesai)
-      const relevantQueue = response.data.filter((apt: Appointment) => 
+      const relevantQueue = data.filter((apt: Appointment) =>
         apt.status === 'CHECKED_IN' || apt.status === 'IN_PROGRESS'
       );
       setAppointments(relevantQueue);
@@ -64,7 +65,7 @@ export default function DoctorQueuePage() {
       // Memanggil endpoint PATCH untuk update status
       await api.patch(`/api/${tenantSlug}/appointments/${appointmentId}`, { status: 'IN_PROGRESS' });
       toast({ title: "Success", description: "Consultation started." });
-      
+
       // Navigasi ke Halaman EMR setelah berhasil
       navigate(`/doctor/emr/${appointmentId}/${patientId}`);
     } catch (error) {
@@ -101,14 +102,22 @@ export default function DoctorQueuePage() {
                     <TableCell>{apt.timeSlot}</TableCell>
                     <TableCell>{apt.status}</TableCell>
                     <TableCell>
-                      {/* Ini adalah representasi "Call Patient Button" dan "Start Consultation" */}
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleStartConsultation(apt.id, apt.patient.id)}
-                        disabled={apt.status === 'IN_PROGRESS'}
-                      >
-                        {apt.status === 'IN_PROGRESS' ? 'In Progress' : 'Start Consultation'}
-                      </Button>
+                      {apt.status === 'IN_PROGRESS' ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => navigate(`/doctor/emr/${apt.id}/${apt.patient.id}`)}
+                        >
+                          Continue
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => handleStartConsultation(apt.id, apt.patient.id)}
+                        >
+                          Start Consultation
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

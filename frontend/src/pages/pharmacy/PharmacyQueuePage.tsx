@@ -38,11 +38,11 @@ export default function PharmacyQueuePage() {
   const [isLoadingQueue, setIsLoadingQueue] = useState(true);
   const [isLoadingInventory, setIsLoadingInventory] = useState(true);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
-  
+
   // State untuk Add Drug Modal
   const [isAddDrugModalOpen, setIsAddDrugModalOpen] = useState(false);
   const [newDrug, setNewDrug] = useState({ name: '', stock: '', unit: '' });
-  
+
   // State untuk Update Stock Modal
   const [isUpdateStockModalOpen, setIsUpdateStockModalOpen] = useState(false);
   const [selectedDrug, setSelectedDrug] = useState<Drug | null>(null);
@@ -52,8 +52,14 @@ export default function PharmacyQueuePage() {
     if (!tenantSlug) return;
     setIsLoadingQueue(true);
     try {
-      const response = await api.get(`/api/${tenantSlug}/prescriptions?status=PENDING`);
-      setPrescriptions(response.data);
+      // Fetch all prescriptions and filter out COMPLETED ones
+      const response = await api.get(`/api/${tenantSlug}/prescriptions`);
+      const data = response.data.data || response.data || [];
+      // Filter to show only active prescriptions (PENDING and PROCESSING)
+      const activePrescriptions = data.filter((p: Prescription) =>
+        p.status === 'PENDING' || p.status === 'PROCESSING'
+      );
+      setPrescriptions(activePrescriptions);
     } catch (error) {
       toast({ title: "Error", description: "Gagal memuat antrian resep.", variant: "destructive" });
     } finally {
@@ -66,7 +72,7 @@ export default function PharmacyQueuePage() {
     setIsLoadingInventory(true);
     try {
       const response = await api.get(`/api/${tenantSlug}/inventory`);
-      setInventory(response.data);
+      setInventory(response.data.data || response.data || []);
     } catch (error) {
       toast({ title: "Error", description: "Gagal memuat data inventaris.", variant: "destructive" });
     } finally {
@@ -97,10 +103,16 @@ export default function PharmacyQueuePage() {
       toast({ title: "Error", description: "Semua field harus diisi.", variant: "destructive" });
       return;
     }
-    
+
     if (!tenantSlug) return;
     try {
-      await api.post(`/api/${tenantSlug}/inventory`, newDrug);
+      // Convert stock to number before sending
+      const payload = {
+        name: newDrug.name,
+        stock: parseInt(newDrug.stock, 10),
+        unit: newDrug.unit,
+      };
+      await api.post(`/api/${tenantSlug}/inventory`, payload);
       toast({ title: "Success", description: "Obat baru berhasil ditambahkan." });
       setIsAddDrugModalOpen(false);
       setNewDrug({ name: '', stock: '', unit: '' });
@@ -116,7 +128,7 @@ export default function PharmacyQueuePage() {
       toast({ title: "Error", description: "Jumlah stock harus diisi.", variant: "destructive" });
       return;
     }
-    
+
     if (!tenantSlug) return;
     try {
       await api.patch(`/api/${tenantSlug}/inventory/${selectedDrug.id}`, { stock: parseInt(newStockAmount) });
@@ -146,26 +158,32 @@ export default function PharmacyQueuePage() {
           <TabsTrigger value="queue">Prescription Queue</TabsTrigger>
           <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="queue" className="mt-4">
           <Card>
-            <CardHeader><CardTitle>Pending Prescriptions</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Active Prescriptions</CardTitle></CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Patient Name</TableHead><TableHead>Doctor</TableHead><TableHead>Date</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Patient Name</TableHead><TableHead>Doctor</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {isLoadingQueue ? (<TableRow><TableCell colSpan={4} className="text-center">Loading queue...</TableCell></TableRow>)
-                    : prescriptions.length === 0 ? (<TableRow><TableCell colSpan={4} className="text-center">No pending prescriptions.</TableCell></TableRow>)
-                    : prescriptions.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell>{p.record.patient.name}</TableCell>
-                        <TableCell>{p.record.doctor.name}</TableCell>
-                        <TableCell>{format(new Date(p.record.visitDate), "dd MMM yyyy")}</TableCell>
-                        <TableCell>
-                          <Button size="sm" onClick={() => setSelectedPrescription(p)}>View Details</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                  {isLoadingQueue ? (<TableRow><TableCell colSpan={5} className="text-center">Loading queue...</TableCell></TableRow>)
+                    : prescriptions.length === 0 ? (<TableRow><TableCell colSpan={5} className="text-center">No active prescriptions.</TableCell></TableRow>)
+                      : prescriptions.map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell>{p.record.patient.name}</TableCell>
+                          <TableCell>{p.record.doctor.name}</TableCell>
+                          <TableCell>{format(new Date(p.record.visitDate), "dd MMM yyyy")}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${p.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
+                              }`}>
+                              {p.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" onClick={() => setSelectedPrescription(p)}>View Details</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                 </TableBody>
               </Table>
             </CardContent>
@@ -176,10 +194,10 @@ export default function PharmacyQueuePage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Drug Inventory</CardTitle>
-              <Button size="sm" onClick={() => setIsAddDrugModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/>Add Drug</Button>
+              <Button size="sm" onClick={() => setIsAddDrugModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4" />Add Drug</Button>
             </CardHeader>
             <CardContent>
-               <Table>
+              <Table>
                 <TableHeader><TableRow><TableHead>Drug Name</TableHead><TableHead>Stock</TableHead><TableHead>Unit</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {isLoadingInventory ? (<TableRow><TableCell colSpan={4} className="text-center">Loading inventory...</TableCell></TableRow>)
@@ -205,7 +223,13 @@ export default function PharmacyQueuePage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Prescription Details</DialogTitle>
-            <DialogDescription>Patient: {selectedPrescription?.record.patient.name} - {format(new Date(selectedPrescription?.record.visitDate || new Date()), "dd MMM yyyy")}</DialogDescription>
+            <DialogDescription>
+              Patient: {selectedPrescription?.record.patient.name} - {format(new Date(selectedPrescription?.record.visitDate || new Date()), "dd MMM yyyy")}
+              <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${selectedPrescription?.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
+                }`}>
+                {selectedPrescription?.status}
+              </span>
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Table>
@@ -219,11 +243,17 @@ export default function PharmacyQueuePage() {
           </div>
           <DialogFooter className="sm:justify-between">
             <div>
-              <Button variant="destructive" onClick={() => setSelectedPrescription(null)}>Close</Button>
+              <Button variant="outline" onClick={() => setSelectedPrescription(null)}>Close</Button>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => handleUpdateStatus(selectedPrescription!.id, 'PROCESSING')}>Mark as Processing</Button>
-              <Button onClick={() => handleUpdateStatus(selectedPrescription!.id, 'COMPLETED')}>Mark as Completed</Button>
+              {selectedPrescription?.status === 'PENDING' && (
+                <Button variant="secondary" onClick={() => handleUpdateStatus(selectedPrescription!.id, 'PROCESSING')}>
+                  Start Processing
+                </Button>
+              )}
+              <Button onClick={() => handleUpdateStatus(selectedPrescription!.id, 'COMPLETED')}>
+                Mark as Completed
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>
@@ -239,28 +269,28 @@ export default function PharmacyQueuePage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="drugName">Drug Name</Label>
-              <Input 
-                id="drugName" 
-                placeholder="e.g. Paracetamol 500mg" 
+              <Input
+                id="drugName"
+                placeholder="e.g. Paracetamol 500mg"
                 value={newDrug.name}
                 onChange={(e) => setNewDrug(prev => ({ ...prev, name: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="stock">Initial Stock</Label>
-              <Input 
-                id="stock" 
-                type="number" 
-                placeholder="e.g. 100" 
+              <Input
+                id="stock"
+                type="number"
+                placeholder="e.g. 100"
                 value={newDrug.stock}
                 onChange={(e) => setNewDrug(prev => ({ ...prev, stock: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="unit">Unit</Label>
-              <Input 
-                id="unit" 
-                placeholder="e.g. Tablet, Kapsul, Botol" 
+              <Input
+                id="unit"
+                placeholder="e.g. Tablet, Kapsul, Botol"
                 value={newDrug.unit}
                 onChange={(e) => setNewDrug(prev => ({ ...prev, unit: e.target.value }))}
               />
@@ -287,10 +317,10 @@ export default function PharmacyQueuePage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="newStock">New Stock Amount</Label>
-              <Input 
-                id="newStock" 
-                type="number" 
-                placeholder="Enter new stock amount" 
+              <Input
+                id="newStock"
+                type="number"
+                placeholder="Enter new stock amount"
                 value={newStockAmount}
                 onChange={(e) => setNewStockAmount(e.target.value)}
               />

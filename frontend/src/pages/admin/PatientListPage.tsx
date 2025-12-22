@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PatientForm, type PatientFormData } from '@/features/patients/PatientForm';
 import { PlusCircle } from 'lucide-react';
 import api from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 
 // Tipe data untuk Patient, sesuaikan dengan schema.prisma
 export interface Patient {
@@ -16,7 +17,7 @@ export interface Patient {
   name: string;
   phone: string;
   dob: string; // ISO string date format "YYYY-MM-DD"
-  gender: 'Male' | 'Female';
+  gender: 'MALE' | 'FEMALE';
 }
 
 export default function PatientListPage() {
@@ -28,14 +29,21 @@ export default function PatientListPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingPatientId, setDeletingPatientId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuthStore();
+
+  // Get tenant slug from authenticated user
+  const tenantSlug = user?.tenant?.slug;
 
   // --- FUNGSI BARU UNTUK MENGAMBIL DATA ---
   const fetchPatients = useCallback(async () => {
+    if (!tenantSlug) return;
+
     setIsLoading(true);
     try {
-      const response = await api.get('/api/patients');
+      const response = await api.get(`/api/${tenantSlug}/patients`);
       // Pastikan dob diformat sebagai YYYY-MM-DD
-      const formattedData = response.data.map((p: Patient) => ({
+      const data = response.data.data || response.data || [];
+      const formattedData = data.map((p: Patient) => ({
         ...p,
         dob: new Date(p.dob).toISOString().split('T')[0]
       }));
@@ -46,7 +54,7 @@ export default function PatientListPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, tenantSlug]);
 
   // useEffect sekarang memanggil fungsi fetchPatients
   useEffect(() => {
@@ -56,13 +64,15 @@ export default function PatientListPage() {
   const handleFormSubmit = async (data: PatientFormData) => {
     setIsSubmitting(true);
     try {
+      if (!tenantSlug) return;
+
       if (editingPatient) {
         // --- LOGIKA EDIT (PATCH) ---
-        await api.patch(`/api/patients/${editingPatient.id}`, data);
+        await api.patch(`/api/${tenantSlug}/patients/${editingPatient.id}`, data);
         toast({ title: "Berhasil", description: "Data pasien berhasil diperbarui." });
       } else {
         // --- LOGIKA ADD (POST) ---
-        await api.post('/api/patients', data);
+        await api.post(`/api/${tenantSlug}/patients`, data);
         toast({ title: "Berhasil", description: "Pasien baru berhasil ditambahkan." });
       }
       setIsModalOpen(false);
@@ -94,8 +104,9 @@ export default function PatientListPage() {
   const confirmDelete = async () => {
     if (deletingPatientId) {
       try {
+        if (!tenantSlug) return;
         // --- LOGIKA DELETE ---
-        await api.delete(`/api/patients/${deletingPatientId}`);
+        await api.delete(`/api/${tenantSlug}/patients/${deletingPatientId}`);
         toast({ title: "Berhasil", description: "Data pasien telah dihapus." });
         // Optimistic update: hapus dari state tanpa perlu fetch ulang
         setPatients(prev => prev.filter(p => p.id !== deletingPatientId));
@@ -126,20 +137,20 @@ export default function PatientListPage() {
             <TableBody>
               {isLoading ? (<TableRow><TableCell colSpan={5} className="text-center">Loading...</TableCell></TableRow>)
                 : patients.length === 0 ? (<TableRow><TableCell colSpan={5} className="text-center">No patient data found.</TableCell></TableRow>)
-                : patients.map((patient) => (
-                  <TableRow key={patient.id}>
-                    <TableCell className="font-medium">{patient.name}</TableCell>
-                    <TableCell>{patient.phone}</TableCell>
-                    <TableCell>{patient.dob}</TableCell>
-                    <TableCell>{patient.gender}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                  : patients.map((patient) => (
+                    <TableRow key={patient.id}>
+                      <TableCell className="font-medium">{patient.name}</TableCell>
+                      <TableCell>{patient.phone}</TableCell>
+                      <TableCell>{patient.dob}</TableCell>
+                      <TableCell>{patient.gender}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
                           <Button variant="outline" size="sm" onClick={() => openEditModal(patient)}>Edit</Button>
                           <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(patient.id)}>Delete</Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
             </TableBody>
           </Table>
         </CardContent>
@@ -152,7 +163,7 @@ export default function PatientListPage() {
           <PatientForm onSubmit={handleFormSubmit} initialData={editingPatient || undefined} isSubmitting={isSubmitting} />
         </DialogContent>
       </Dialog>
-      
+
       {/* Dialog Konfirmasi Hapus */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

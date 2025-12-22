@@ -15,7 +15,7 @@ export const patientFormSchema = z.object({
   name: z.string().min(2, { message: "Nama minimal 2 karakter." }),
   phone: z.string().min(10, { message: "Nomor telepon minimal 10 digit." }),
   dob: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Format tanggal tidak valid." }),
-  gender: z.enum(["Male", "Female"]),
+  gender: z.enum(["MALE", "FEMALE"]),
 });
 
 export type PatientFormData = z.infer<typeof patientFormSchema>;
@@ -29,7 +29,7 @@ interface PatientFormProps {
 export function PatientForm({ onSubmit, initialData, isSubmitting }: PatientFormProps) {
   const form = useForm<PatientFormData>({
     resolver: zodResolver(patientFormSchema),
-    defaultValues: initialData || { name: "", phone: "", dob: "", gender: "Male" },
+    defaultValues: initialData || { name: "", phone: "", dob: "", gender: "MALE" },
   });
 
   return (
@@ -48,7 +48,7 @@ export function PatientForm({ onSubmit, initialData, isSubmitting }: PatientForm
           <FormItem><FormLabel>Jenis Kelamin</FormLabel>
             <Select onValueChange={field.onChange} defaultValue={field.value}>
               <FormControl><SelectTrigger><SelectValue placeholder="Pilih jenis kelamin" /></SelectTrigger></FormControl>
-              <SelectContent><SelectItem value="Male">Laki-laki</SelectItem><SelectItem value="Female">Perempuan</SelectItem></SelectContent>
+              <SelectContent><SelectItem value="MALE">Laki-laki</SelectItem><SelectItem value="FEMALE">Perempuan</SelectItem></SelectContent>
             </Select>
             <FormMessage />
           </FormItem>

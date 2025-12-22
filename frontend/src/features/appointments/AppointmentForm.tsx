@@ -59,10 +59,17 @@ export function AppointmentForm({ onSubmit, initialData, isSubmitting, patients,
         )} />
         <FormField control={form.control} name="doctorId" render={({ field }) => (
           <FormItem><FormLabel>Dokter</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl><SelectTrigger><SelectValue placeholder="Pilih Dokter" /></SelectTrigger></FormControl>
-              <SelectContent>{doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={doctors.length === 0}>
+              <FormControl><SelectTrigger><SelectValue placeholder={doctors.length === 0 ? "Tidak ada dokter tersedia" : "Pilih Dokter"} /></SelectTrigger></FormControl>
+              <SelectContent>
+                {doctors.length === 0 ? (
+                  <SelectItem value="__empty__" disabled>Daftarkan dokter terlebih dahulu</SelectItem>
+                ) : (
+                  doctors.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)
+                )}
+              </SelectContent>
             </Select>
+            {doctors.length === 0 && <p className="text-sm text-muted-foreground">Tambahkan dokter melalui tombol "Add Staff" di halaman Dashboard.</p>}
             <FormMessage />
           </FormItem>
         )} />

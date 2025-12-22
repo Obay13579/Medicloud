@@ -71,8 +71,9 @@ export default function EmrPage() {
         api.get(`/api/${tenantSlug}/patients/${patientId}`),
         api.get(`/api/${tenantSlug}/patients/${patientId}/records`)
       ]);
-      setPatient(patientRes.data);
-      setHistory(historyRes.data);
+      // Handle nested response format
+      setPatient(patientRes.data.data || patientRes.data);
+      setHistory(historyRes.data.data || historyRes.data || []);
     } catch (error) {
       toast({ title: "Error", description: "Failed to load patient data.", variant: "destructive" });
     } finally {
@@ -89,8 +90,10 @@ export default function EmrPage() {
     try {
       const payload = { ...data, patientId, doctorId };
       const response = await api.post(`/api/${tenantSlug}/records`, payload);
-      setNewRecordId(response.data.id); // Save the new record ID
-      toast({ title: "SOAP Saved", description: "Medical record has been saved." });
+      // Handle nested response format
+      const recordData = response.data.data || response.data;
+      setNewRecordId(recordData.id); // Save the new record ID
+      toast({ title: "SOAP Saved", description: "Medical record has been saved. You can now send prescription." });
       await fetchData(); // Refresh history
     } catch (error) {
       toast({ title: "Error", description: "Failed to save SOAP record.", variant: "destructive" });
@@ -184,7 +187,7 @@ export default function EmrPage() {
                       <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   ))}
-                  <Button type="button" variant="outline" size="sm" onClick={() => append({ drugName: '', dosage: '', frequency: '' })}><PlusCircle className="mr-2 h-4 w-4"/>Add Drug</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => append({ drugName: '', dosage: '', frequency: '' })}><PlusCircle className="mr-2 h-4 w-4" />Add Drug</Button>
                   <Separator />
                   <Button type="submit" disabled={!newRecordId || prescriptionForm.formState.isSubmitting}>Send to Pharmacy</Button>
                 </form>

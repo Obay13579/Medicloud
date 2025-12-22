@@ -20,6 +20,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
+    "types": ["node", "vite/client"],
 
     /* Path Mapping */
     "baseUrl": ".",

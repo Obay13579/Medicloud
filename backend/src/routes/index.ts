@@ -6,6 +6,7 @@ import appointmentRoutes from './appointment.routes';
 import recordRoutes from './record.routes';
 import prescriptionRoutes from './prescription.routes';
 import inventoryRoutes from './inventory.routes';
+import userRoutes from './user.routes';
 
 const router = Router();
 
@@ -19,5 +20,7 @@ router.use('/:tenant/appointments', appointmentRoutes);
 router.use('/:tenant/records', recordRoutes);
 router.use('/:tenant/prescriptions', prescriptionRoutes);
 router.use('/:tenant/inventory', inventoryRoutes);
+router.use('/:tenant/users', userRoutes);
 
 export default router;
+

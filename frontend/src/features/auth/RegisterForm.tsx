@@ -45,38 +45,42 @@ export function RegisterForm() {
       confirmPassword: "",
     },
   });
-  
+
   // Fungsi untuk membuat 'slug' dari nama klinik
-  const createSlug = (text: string) => 
+  const createSlug = (text: string) =>
     text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       // Siapkan data untuk dikirim ke API
-      const payload = {
-        // Data untuk Tenant/Klinik
+      const tenantPayload = {
         name: values.clinicName,
         slug: createSlug(values.clinicName),
+      };
 
-        // Data untuk User Admin pertama
-        adminUser: {
-          name: values.name,
-          email: values.email,
-          password: values.password,
-        }
+      // Data untuk User Admin pertama
+      const tenantResponse = await api.post('/api/tenants', tenantPayload);
+      const tenantId = tenantResponse.data.data.id;
+      // Step 2: Register Admin User dengan tenantId yang baru dibuat
+      const userPayload = {
+        tenantId: tenantId,
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        role: 'ADMIN', // User pertama adalah Admin
       };
 
       // Panggil API untuk membuat tenant (klinik) baru
       // CATATAN: Asumsinya backend memiliki satu endpoint untuk menangani ini.
       // Endpoint `POST /api/tenants` mungkin sudah di-setup untuk menerima data admin.
-      await api.post('/api/tenants', payload);
+      await api.post('/api/auth/register', userPayload);
 
       toast({
         title: "Registrasi Berhasil!",
         description: "Akun klinik Anda telah dibuat. Silakan login.",
       });
-      
+
       // Arahkan ke halaman login setelah berhasil
       navigate('/login');
 
