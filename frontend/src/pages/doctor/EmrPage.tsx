@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import api from '@/lib/api';
 
 export function EmrPage() {
   const { appointmentId } = useParams();
@@ -219,38 +220,8 @@ export function EmrPage() {
           <div className="text-right">
             <Button size="lg" onClick={onCompleteConsultation} disabled={!newRecordId}>Complete Consultation</Button>
           </div>
-          <div>
-            <Label>Objective (Physical Examination)</Label>
-            <Textarea
-              placeholder="Vital signs, examination findings..."
-              value={objective}
-              onChange={(e) => setObjective(e.target.value)}
-              rows={3}
-            />
-          </div>
-          <div>
-            <Label>Assessment (Diagnosis)</Label>
-            <Textarea
-              placeholder="Diagnosis, differential diagnosis..."
-              value={assessment}
-              onChange={(e) => setAssessment(e.target.value)}
-              rows={3}
-            />
-          </div>
-          <div>
-            <Label>Plan (Treatment Plan)</Label>
-            <Textarea
-              placeholder="Treatment plan, follow-up..."
-              value={plan}
-              onChange={(e) => setPlan(e.target.value)}
-              rows={3}
-            />
-          </div>
-          <Button onClick={handleSaveSOAP} disabled={isLoading}>
-            Save SOAP Notes
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Prescription Form */}
       <Card>

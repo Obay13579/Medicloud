@@ -1,6 +1,7 @@
 // frontend/src/features/auth/LoginForm.tsx
 "use client"
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -16,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
@@ -33,7 +35,6 @@ export function LoginForm() {
   const { login, isLoading, user } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { login } = useAuthStore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -44,8 +45,7 @@ export function LoginForm() {
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       // 1. Panggil API Login
       const loginResponse = await api.post('/api/auth/login', values);
@@ -80,7 +80,7 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="tenantSlug"
@@ -107,21 +107,23 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-      </div>
-      <div>
-        <Label htmlFor="password">Password</Label>
-        <Input 
-          id="password"
-          type="password" 
-          placeholder="Password" 
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="Password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? 'Loading...' : 'Login'}
-      </Button>
-    </form>
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? 'Loading...' : 'Login'}
+        </Button>
+      </form>
+    </Form>
   );
 }
