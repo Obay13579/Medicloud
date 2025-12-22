@@ -58,6 +58,37 @@ Built with a modern **Monorepo Architecture** for seamless full-stack developmen
 - **Load Balancer:** Cloudflare Tunnel (Replica) - *High Availability*
 - **DevOps:** Docker Compose, GitHub Actions (CI/CD)
 
+### **Architecture Diagram**
+
+<img width="10809" height="2376" alt="architecture-diagram-2025-12-22-012352" src="https://github.com/user-attachments/assets/6174e02a-b19d-43d2-b79f-30afdfdac6e9" />
+
+
+---
+
+## Cloud Architecture & Standards
+
+### Relevansi NIST CCRA
+
+**MediCloud** mengadopsi kerangka kerja NIST Cloud Computing Reference Architecture (SP 500-292) dengan pembagian peran:
+- **Cloud Provider:** MediCloud bertindah sebagai penyedia layanan SaaS yang mengelola infrastruktur, aplikasi, dan keamanan data.
+- **Cloud Consumer:** Klinik kecil-menengah di Indonesia yang menggunakan layanan untuk operasional medis.
+- **Cloud Broker:** Integrasi dengan Supabase untuk manajemen database dan Cloudflare untuk entry point jaringan.
+- **Karakteristik Utama:** Mendukung On-demand self-service dan Flexibility melalui penggunaan Docker.
+
+### Resource Abstraction & Provisioning
+
+- **Resource Abstraction:** Menggunakan Docker Containerization untuk mengabstraksi runtime environment (Node.js) yang memastikan konsistensi aplikasi di berbagai lingkungan server.
+- **Provisioning:** Menggunakan Docker Compose untuk orkestrasi kontainer secara otomatis. 
+
+### Business Support System (BSS)
+
+- **Tenant Billing:** Dengan skema Pay-as-you-grow, otomatis menghitung biaya langganan berdasarkan jumlah data atau durasi penggunaan.
+- **Provisioning Logic:** Endpoint `/api/tenants` menangani pembuatan data terisolasi secara otomatis untuk setiap klinik baru yang mendaftar.
+
+### Rancangan Monitoring
+
+<...>
+
 ---
 
 ## 📂 Project Structure

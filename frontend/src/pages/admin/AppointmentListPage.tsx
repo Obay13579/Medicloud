@@ -1,36 +1,20 @@
-// frontend/src/pages/admin/AppointmentListPage.tsx
-
-import { useEffect, useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon, PlusCircle } from "lucide-react";
-
-import { AppointmentForm, type AppointmentFormData } from '@/features/appointments/AppointmentForm';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import api from '@/lib/api';
+import { useEffect, useState } from 'react';
+import { appointmentService } from '@/services/appointmentService';
 import { useAuthStore } from '@/stores/authStore';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
 
-// Tipe data dari API
-interface Patient { id: string; name: string; }
-interface Doctor { id: string; name: string; }
-interface Appointment {
-  id: string;
-  patient: Patient;
-  doctor: Doctor;
-  date: string;
-  timeSlot: string;
-  status: string;
-}
-
-export default function AppointmentListPage() {
+export function AppointmentListPage() {
+  const [appointments, setAppointments] = useState([]);
+  const [filterDate, setFilterDate] = useState('');
   const { user } = useAuthStore();
   const tenantSlug = user?.tenant?.slug;
 
@@ -81,57 +65,43 @@ export default function AppointmentListPage() {
   }, [filters, toast, tenantSlug]);
 
   useEffect(() => {
-    fetchDependencies();
-  }, [fetchDependencies]);
+    if (tenant) loadAppointments();
+  }, [tenant, filterDate]);
 
-  useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
-
-  const handleFormSubmit = async (data: AppointmentFormData) => {
-    if (!tenantSlug) return;
-    setIsSubmitting(true);
-    const payload = { ...data, date: format(data.date, 'yyyy-MM-dd') };
+  const loadAppointments = async () => {
     try {
-      if (editingAppointment) {
-        await api.patch(`/api/${tenantSlug}/appointments/${editingAppointment.id}`, payload);
-        toast({ title: "Berhasil", description: "Janji temu berhasil diperbarui." });
-      } else {
-        await api.post(`/api/${tenantSlug}/appointments`, payload);
-        toast({ title: "Berhasil", description: "Janji temu baru berhasil dibuat." });
-      }
-      setIsModalOpen(false);
-      setEditingAppointment(null);
-      await fetchAppointments();
+      const params = filterDate ? { date: filterDate } : {};
+      const { data } = await appointmentService.getAll(tenant, params);
+      setAppointments(data);
     } catch (error) {
-      toast({ title: "Error", description: "Gagal menyimpan janji temu.", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
+      console.error('Failed to load appointments', error);
     }
   };
 
-  const confirmDelete = async () => {
-    if (deletingAppointmentId && tenantSlug) {
+  const handleDelete = async (id: string) => {
+    if (confirm('Cancel this appointment?')) {
       try {
-        await api.delete(`/api/${tenantSlug}/appointments/${deletingAppointmentId}`);
-        toast({ title: "Berhasil", description: "Janji temu telah dibatalkan." });
-        setAppointments(prev => prev.filter(p => p.id !== deletingAppointmentId));
+        await appointmentService.delete(tenant, id);
+        loadAppointments();
       } catch (error) {
-        toast({ title: "Error", description: "Gagal membatalkan janji temu.", variant: "destructive" });
-      } finally {
-        setIsDeleteDialogOpen(false);
-        setDeletingAppointmentId(null);
+        alert('Failed to cancel appointment');
       }
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Appointment Management</h1>
-        <Button onClick={() => { setEditingAppointment(null); setIsModalOpen(true); }}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Appointment
-        </Button>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Appointment List</h1>
+        <div className="flex gap-3">
+          <Input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="w-48"
+          />
+          <Button>Add Appointment</Button>
+        </div>
       </div>
 
       <Card>

@@ -28,6 +28,9 @@ const formSchema = z.object({
 });
 
 export function LoginForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { login, isLoading, user } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { login } = useAuthStore();
@@ -41,7 +44,8 @@ export function LoginForm() {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
       // 1. Panggil API Login
       const loginResponse = await api.post('/api/auth/login', values);
@@ -70,14 +74,9 @@ export function LoginForm() {
           navigate('/');
       }
     } catch (error) {
-      console.error("Login failed:", error);
-      toast({
-        title: "Login Gagal",
-        description: "Email atau password salah. Silakan coba lagi.",
-        variant: "destructive",
-      });
+      alert('Login failed');
     }
-  }
+  };
 
   return (
     <Form {...form}>
@@ -108,23 +107,21 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="******" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+      </div>
+      <div>
+        <Label htmlFor="password">Password</Label>
+        <Input 
+          id="password"
+          type="password" 
+          placeholder="Password" 
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
         />
-        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? "Memproses..." : "Login"}
-        </Button>
-      </form>
-    </Form>
-  )
+      </div>
+      <Button type="submit" disabled={isLoading} className="w-full">
+        {isLoading ? 'Loading...' : 'Login'}
+      </Button>
+    </form>
+  );
 }

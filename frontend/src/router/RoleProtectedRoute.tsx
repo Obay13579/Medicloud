@@ -1,4 +1,3 @@
-// frontend/src/router/RoleProtectedRoute.tsx
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useEffect, useState } from 'react';
@@ -32,13 +31,13 @@ export const RoleProtectedRoute = ({ allowedRoles }: RoleProtectedRouteProps) =>
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  if (!token) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!user || !allowedRoles.includes(user.role)) {
+  if (!allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
 
   return <Outlet />;
-};
+}

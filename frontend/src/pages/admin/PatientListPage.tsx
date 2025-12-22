@@ -58,11 +58,10 @@ export default function PatientListPage() {
 
   // useEffect sekarang memanggil fungsi fetchPatients
   useEffect(() => {
-    fetchPatients();
-  }, [fetchPatients]);
+    if (tenant) loadPatients();
+  }, [tenant]);
 
-  const handleFormSubmit = async (data: PatientFormData) => {
-    setIsSubmitting(true);
+  const loadPatients = async () => {
     try {
       if (!tenantSlug) return;
 
@@ -79,30 +78,12 @@ export default function PatientListPage() {
       setEditingPatient(null);
       await fetchPatients(); // Ambil data terbaru setelah submit
     } catch (error) {
-      console.error("Failed to submit patient form:", error);
-      toast({ title: "Error", description: "Gagal menyimpan data pasien.", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
+      console.error('Failed to load patients', error);
     }
   };
 
-  const openAddModal = () => {
-    setEditingPatient(null);
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (patient: Patient) => {
-    setEditingPatient(patient);
-    setIsModalOpen(true);
-  };
-
-  const openDeleteDialog = (patientId: string) => {
-    setDeletingPatientId(patientId);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (deletingPatientId) {
+  const handleDelete = async (id: string) => {
+    if (confirm('Delete patient?')) {
       try {
         if (!tenantSlug) return;
         // --- LOGIKA DELETE ---
@@ -111,22 +92,16 @@ export default function PatientListPage() {
         // Optimistic update: hapus dari state tanpa perlu fetch ulang
         setPatients(prev => prev.filter(p => p.id !== deletingPatientId));
       } catch (error) {
-        console.error("Failed to delete patient:", error);
-        toast({ title: "Error", description: "Gagal menghapus data pasien.", variant: "destructive" });
-      } finally {
-        setIsDeleteDialogOpen(false);
-        setDeletingPatientId(null);
+        alert('Failed to delete patient');
       }
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Patient Management</h1>
-        <Button onClick={openAddModal}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Patient
-        </Button>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Patient List</h1>
+        <Button>Add Patient</Button>
       </div>
 
       <Card>

@@ -1,4 +1,3 @@
-// frontend/src/pages/admin/AdminDashboardPage.tsx
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,12 +18,9 @@ interface Appointment {
     status: 'SCHEDULED' | 'CHECKED_IN' | 'IN_PROGRESS' | 'COMPLETED';
 }
 
-interface Stats {
-    doctors: number;
-    patients: number;
-    newBookings: number;
-    todaySessions: number;
-}
+  useEffect(() => {
+    if (tenant) loadTodayAppointments();
+  }, [tenant]);
 
 export default function AdminDashboardPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([]);

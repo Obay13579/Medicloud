@@ -1,37 +1,26 @@
-// frontend/src/pages/pharmacy/PharmacyQueuePage.tsx
-
-import { useEffect, useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { PlusCircle } from 'lucide-react';
-import api from '@/lib/api';
+import { useEffect, useState } from 'react';
+import { prescriptionService } from '@/services/prescriptionService';
+import { inventoryService } from '@/services/inventoryService';
 import { useAuthStore } from '@/stores/authStore';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
-// --- Type Definitions ---
-interface PrescriptionItem { drugName: string; dosage: string; frequency: string; }
-interface Prescription {
-  id: string;
-  status: string;
-  items: PrescriptionItem[];
-  record: {
-    visitDate: string;
-    patient: { name: string; };
-    doctor: { name: string; };
-  };
-}
-interface Drug { id: string; name: string; stock: number; unit: string; }
-
-export default function PharmacyQueuePage() {
+export function PharmacyQueuePage() {
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [selectedPrescription, setSelectedPrescription] = useState<any>(null);
   const { user } = useAuthStore();
-  const tenantSlug = user?.tenant?.slug;
-  const { toast } = useToast();
+  const tenant = user?.tenantId;
 
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [inventory, setInventory] = useState<Drug[]>([]);
@@ -48,9 +37,7 @@ export default function PharmacyQueuePage() {
   const [selectedDrug, setSelectedDrug] = useState<Drug | null>(null);
   const [newStockAmount, setNewStockAmount] = useState('');
 
-  const fetchPrescriptions = useCallback(async () => {
-    if (!tenantSlug) return;
-    setIsLoadingQueue(true);
+  const loadPrescriptions = async () => {
     try {
       // Fetch all prescriptions and filter out COMPLETED ones
       const response = await api.get(`/api/${tenantSlug}/prescriptions`);
@@ -61,47 +48,34 @@ export default function PharmacyQueuePage() {
       );
       setPrescriptions(activePrescriptions);
     } catch (error) {
-      toast({ title: "Error", description: "Gagal memuat antrian resep.", variant: "destructive" });
-    } finally {
-      setIsLoadingQueue(false);
+      console.error('Failed to load prescriptions', error);
     }
-  }, [tenantSlug, toast]);
+  };
 
-  const fetchInventory = useCallback(async () => {
-    if (!tenantSlug) return;
-    setIsLoadingInventory(true);
+  const loadInventory = async () => {
     try {
       const response = await api.get(`/api/${tenantSlug}/inventory`);
       setInventory(response.data.data || response.data || []);
     } catch (error) {
-      toast({ title: "Error", description: "Gagal memuat data inventaris.", variant: "destructive" });
-    } finally {
-      setIsLoadingInventory(false);
-    }
-  }, [tenantSlug, toast]);
-
-  useEffect(() => {
-    fetchPrescriptions();
-    fetchInventory();
-  }, [fetchPrescriptions, fetchInventory]);
-
-  const handleUpdateStatus = async (prescriptionId: string, status: 'PROCESSING' | 'COMPLETED') => {
-    if (!tenantSlug) return;
-    try {
-      await api.patch(`/api/${tenantSlug}/prescriptions/${prescriptionId}`, { status });
-      toast({ title: "Success", description: `Resep telah ditandai sebagai ${status.toLowerCase()}.` });
-      setSelectedPrescription(null);
-      await fetchPrescriptions(); // Refresh list
-    } catch (error) {
-      toast({ title: "Error", description: "Gagal memperbarui status resep.", variant: "destructive" });
+      console.error('Failed to load inventory', error);
     }
   };
 
-  // Handler untuk Add Drug
-  const handleAddDrug = async () => {
-    if (!newDrug.name || !newDrug.stock || !newDrug.unit) {
-      toast({ title: "Error", description: "Semua field harus diisi.", variant: "destructive" });
-      return;
+  const handleViewPrescription = async (id: string) => {
+    try {
+      const { data } = await prescriptionService.getById(tenant, id);
+      setSelectedPrescription(data);
+    } catch (error) {
+      alert('Failed to load prescription detail');
+    }
+  };
+
+  const handleProcessPrescription = async (id: string) => {
+    try {
+      await prescriptionService.updateStatus(tenant, id, 'PROCESSING');
+      loadPrescriptions();
+    } catch (error) {
+      alert('Failed to process prescription');
     }
 
     if (!tenantSlug) return;
@@ -118,45 +92,47 @@ export default function PharmacyQueuePage() {
       setNewDrug({ name: '', stock: '', unit: '' });
       await fetchInventory();
     } catch (error) {
-      toast({ title: "Error", description: "Gagal menambahkan obat.", variant: "destructive" });
+      alert('Failed to complete prescription');
     }
   };
 
-  // Handler untuk Update Stock
-  const handleUpdateStock = async () => {
-    if (!selectedDrug || !newStockAmount) {
-      toast({ title: "Error", description: "Jumlah stock harus diisi.", variant: "destructive" });
+  const handleAddDrug = async () => {
+    if (!newDrug.name || !newDrug.stock) {
+      alert('Please fill all fields');
       return;
     }
 
     if (!tenantSlug) return;
     try {
-      await api.patch(`/api/${tenantSlug}/inventory/${selectedDrug.id}`, { stock: parseInt(newStockAmount) });
-      toast({ title: "Success", description: `Stock ${selectedDrug.name} berhasil diperbarui.` });
-      setIsUpdateStockModalOpen(false);
-      setSelectedDrug(null);
-      setNewStockAmount('');
-      await fetchInventory();
+      await inventoryService.create(tenant, {
+        name: newDrug.name,
+        stock: parseInt(newDrug.stock),
+      });
+      setNewDrug({ name: '', stock: '' });
+      loadInventory();
+      alert('Drug added successfully');
     } catch (error) {
-      toast({ title: "Error", description: "Gagal memperbarui stock.", variant: "destructive" });
+      alert('Failed to add drug');
     }
   };
 
-  // Open Update Stock Modal
-  const openUpdateStockModal = (drug: Drug) => {
-    setSelectedDrug(drug);
-    setNewStockAmount(drug.stock.toString());
-    setIsUpdateStockModalOpen(true);
+  const handleUpdateStock = async (id: string, newStock: number) => {
+    try {
+      await inventoryService.updateStock(tenant, id, newStock);
+      loadInventory();
+    } catch (error) {
+      alert('Failed to update stock');
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Pharmacy Dashboard</h1>
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">Pharmacy Dashboard</h1>
 
-      <Tabs defaultValue="queue">
+      <Tabs defaultValue="prescriptions">
         <TabsList>
-          <TabsTrigger value="queue">Prescription Queue</TabsTrigger>
-          <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
+          <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory</TabsTrigger>
         </TabsList>
 
         <TabsContent value="queue" className="mt-4">
@@ -188,11 +164,9 @@ export default function PharmacyQueuePage() {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="inventory" className="mt-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle>Drug Inventory</CardTitle>
               <Button size="sm" onClick={() => setIsAddDrugModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4" />Add Drug</Button>
             </CardHeader>
@@ -200,17 +174,24 @@ export default function PharmacyQueuePage() {
               <Table>
                 <TableHeader><TableRow><TableHead>Drug Name</TableHead><TableHead>Stock</TableHead><TableHead>Unit</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {isLoadingInventory ? (<TableRow><TableCell colSpan={4} className="text-center">Loading inventory...</TableCell></TableRow>)
-                    : inventory.map((drug) => (
-                      <TableRow key={drug.id}>
-                        <TableCell>{drug.name}</TableCell>
-                        <TableCell>{drug.stock}</TableCell>
-                        <TableCell>{drug.unit}</TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="outline" onClick={() => openUpdateStockModal(drug)}>Update Stock</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                  {inventory.map((drug: any) => (
+                    <TableRow key={drug.id}>
+                      <TableCell>{drug.name}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          defaultValue={drug.stock}
+                          onBlur={(e) => handleUpdateStock(drug.id, parseInt(e.target.value))}
+                          className="w-24"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="outline">
+                          Update
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>

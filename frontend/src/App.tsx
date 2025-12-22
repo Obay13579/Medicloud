@@ -1,85 +1,53 @@
-// frontend/src/App.tsx
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import LandingPage from './pages/public/LandingPage';
-import LoginPage from './pages/public/LoginPage';
-import RegisterPage from './pages/public/RegisterPage';
-import { Toaster } from "@/components/ui/toaster";
-
-// Layouts & Routes
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { LandingPage } from './pages/public/LandingPage';
+import { LoginPage } from './pages/public/LoginPage';
+import { RegisterPage } from './pages/public/RegisterPage';
 import { AppLayout } from './components/layouts/AppLayout';
+import { ProtectedRoute } from './router/ProtectedRoute';
 import { RoleProtectedRoute } from './router/RoleProtectedRoute';
 
-// Pages
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
-import PatientListPage from './pages/admin/PatientListPage';
-import AppointmentListPage from './pages/admin/AppointmentListPage';
-import DoctorQueuePage from './pages/doctor/DoctorQueuePage';
-import EmrPage from './pages/doctor/EmrPage';
-import PharmacyQueuePage from './pages/pharmacy/PharmacyQueuePage';
-
-import { useAuthStore } from './stores/authStore';
-
-const HomeRedirect = () => {
-  const { user } = useAuthStore();
-  if (user?.role === 'ADMIN') {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
-  if (user?.role === 'DOCTOR') {
-    return <Navigate to="/doctor/queue" replace />;
-  }
-  if (user?.role === 'PHARMACIST') {
-    return <Navigate to="/pharmacy/queue" replace />;
-  }
-  // Tambahkan peran lain di sini jika perlu
-  // ...
-  return <Navigate to="/" replace />; // Fallback jika tidak ada peran yang cocok
-};
-
+// Fix: Gunakan named import
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
+import { PatientListPage } from './pages/admin/PatientListPage';
+import { AppointmentListPage } from './pages/admin/AppointmentListPage';
+import { DoctorQueuePage } from './pages/doctor/DoctorQueuePage';
+import { EmrPage } from './pages/doctor/EmrPage';
+import { PharmacyQueuePage } from './pages/pharmacy/PharmacyQueuePage';
 
 function App() {
   return (
-    <>
-      <Router>
-        <Routes>
-          {/* --- Rute Publik --- */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+    <BrowserRouter>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-          {/* --- Rute Admin (Dilindungi oleh RoleProtectedRoute) --- */}
-          <Route element={<RoleProtectedRoute allowedRoles={['ADMIN']} />}>
-            <Route element={<AppLayout />}>
-              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-              <Route path="/admin/patients" element={<PatientListPage />} />
-              <Route path="/admin/appointments" element={<AppointmentListPage />} />
-            </Route>
+        {/* Protected Routes with Layout */}
+        <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          {/* Admin Routes */}
+          <Route path="/admin" element={<RoleProtectedRoute allowedRoles={['ADMIN']} />}>
+            <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="patients" element={<PatientListPage />} />
+            <Route path="appointments" element={<AppointmentListPage />} />
           </Route>
 
-          {/* --- Rute Dokter (Dilindungi oleh RoleProtectedRoute) --- */}
-          <Route element={<RoleProtectedRoute allowedRoles={['DOCTOR']} />}>
-            <Route element={<AppLayout />}>
-              <Route path="/doctor/queue" element={<DoctorQueuePage />} />
-              <Route path="/doctor/emr/:appointmentId/:patientId" element={<EmrPage />} />
-            </Route>
+          {/* Doctor Routes */}
+          <Route path="/doctor" element={<RoleProtectedRoute allowedRoles={['DOCTOR']} />}>
+            <Route path="queue" element={<DoctorQueuePage />} />
+            <Route path="emr/:appointmentId" element={<EmrPage />} />
           </Route>
 
-          <Route element={<RoleProtectedRoute allowedRoles={['PHARMACIST']} />}>
-            <Route element={<AppLayout />}>
-              <Route path="/pharmacy/queue" element={<PharmacyQueuePage />} />
-            </Route>
+          {/* Pharmacy Routes */}
+          <Route path="/pharmacy" element={<RoleProtectedRoute allowedRoles={['PHARMACIST']} />}>
+            <Route path="queue" element={<PharmacyQueuePage />} />
           </Route>
+        </Route>
 
-          {/* --- Rute untuk redirect setelah login --- */}
-          {/* Ini adalah rute "virtual" yang tidak punya UI */}
-          <Route path="/home" element={<HomeRedirect />} />
-
-          {/* --- Rute Fallback (Jika halaman tidak ditemukan) --- */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-
-        </Routes>
-      </Router>
-      <Toaster />
-    </>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
