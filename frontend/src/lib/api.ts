@@ -28,4 +28,21 @@ api.interceptors.response.use(
   }
 );
 
+// Response interceptor untuk handle error 401 (unauthorized)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Only logout on 401 if it's not a login/register request
+    if (error.response?.status === 401) {
+      const isAuthRequest = error.config?.url?.includes('/auth/');
+      if (!isAuthRequest) {
+        console.log('Session expired, logging out...');
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

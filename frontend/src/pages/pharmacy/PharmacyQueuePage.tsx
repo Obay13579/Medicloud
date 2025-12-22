@@ -22,8 +22,52 @@ export function PharmacyQueuePage() {
   const { user } = useAuthStore();
   const tenant = user?.tenantId;
 
-  // Add drug form
-  const [newDrug, setNewDrug] = useState({ name: '', stock: '' });
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [inventory, setInventory] = useState<Drug[]>([]);
+  const [isLoadingQueue, setIsLoadingQueue] = useState(true);
+  const [isLoadingInventory, setIsLoadingInventory] = useState(true);
+  const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
+
+  // State untuk Add Drug Modal
+  const [isAddDrugModalOpen, setIsAddDrugModalOpen] = useState(false);
+  const [newDrug, setNewDrug] = useState({ name: '', stock: '', unit: '' });
+
+  // State untuk Update Stock Modal
+  const [isUpdateStockModalOpen, setIsUpdateStockModalOpen] = useState(false);
+  const [selectedDrug, setSelectedDrug] = useState<Drug | null>(null);
+  const [newStockAmount, setNewStockAmount] = useState('');
+
+  const fetchPrescriptions = useCallback(async () => {
+    if (!tenantSlug) return;
+    setIsLoadingQueue(true);
+    try {
+      // Fetch all prescriptions and filter out COMPLETED ones
+      const response = await api.get(`/api/${tenantSlug}/prescriptions`);
+      const data = response.data.data || response.data || [];
+      // Filter to show only active prescriptions (PENDING and PROCESSING)
+      const activePrescriptions = data.filter((p: Prescription) =>
+        p.status === 'PENDING' || p.status === 'PROCESSING'
+      );
+      setPrescriptions(activePrescriptions);
+    } catch (error) {
+      toast({ title: "Error", description: "Gagal memuat antrian resep.", variant: "destructive" });
+    } finally {
+      setIsLoadingQueue(false);
+    }
+  }, [tenantSlug, toast]);
+
+  const fetchInventory = useCallback(async () => {
+    if (!tenantSlug) return;
+    setIsLoadingInventory(true);
+    try {
+      const response = await api.get(`/api/${tenantSlug}/inventory`);
+      setInventory(response.data.data || response.data || []);
+    } catch (error) {
+      toast({ title: "Error", description: "Gagal memuat data inventaris.", variant: "destructive" });
+    } finally {
+      setIsLoadingInventory(false);
+    }
+  }, [tenantSlug, toast]);
 
   useEffect(() => {
     if (tenant) {
@@ -85,20 +129,32 @@ export function PharmacyQueuePage() {
       return;
     }
 
+    if (!tenantSlug) return;
     try {
-      await inventoryService.create(tenant, {
+      // Convert stock to number before sending
+      const payload = {
         name: newDrug.name,
-        stock: parseInt(newDrug.stock),
-      });
-      setNewDrug({ name: '', stock: '' });
-      loadInventory();
-      alert('Drug added successfully');
+        stock: parseInt(newDrug.stock, 10),
+        unit: newDrug.unit,
+      };
+      await api.post(`/api/${tenantSlug}/inventory`, payload);
+      toast({ title: "Success", description: "Obat baru berhasil ditambahkan." });
+      setIsAddDrugModalOpen(false);
+      setNewDrug({ name: '', stock: '', unit: '' });
+      await fetchInventory();
     } catch (error) {
       alert('Failed to add drug');
     }
   };
 
-  const handleUpdateStock = async (id: string, newStock: number) => {
+  // Handler untuk Update Stock
+  const handleUpdateStock = async () => {
+    if (!selectedDrug || !newStockAmount) {
+      toast({ title: "Error", description: "Jumlah stock harus diisi.", variant: "destructive" });
+      return;
+    }
+
+    if (!tenantSlug) return;
     try {
       await inventoryService.updateStock(tenant, id, newStock);
       loadInventory();
@@ -117,124 +173,47 @@ export function PharmacyQueuePage() {
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
         </TabsList>
 
-        {/* Prescriptions Tab */}
-        <TabsContent value="prescriptions" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Prescription List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Prescriptions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {prescriptions.map((rx: any) => (
-                  <div
-                    key={rx.id}
-                    className="p-3 border rounded cursor-pointer hover:bg-gray-50"
-                    onClick={() => handleViewPrescription(rx.id)}
-                  >
-                    <p className="font-semibold">{rx.patient?.name}</p>
-                    <p className="text-sm text-gray-600">
-                      {new Date(rx.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))}
-                {prescriptions.length === 0 && (
-                  <p className="text-gray-500 text-center py-4">No pending prescriptions</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Prescription Detail */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Prescription Detail</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {selectedPrescription ? (
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-gray-600">Patient</p>
-                      <p className="font-semibold">{selectedPrescription.patient?.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Doctor</p>
-                      <p className="font-semibold">{selectedPrescription.doctor?.name}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold mb-2">Medications:</p>
-                      {selectedPrescription.items?.map((item: any, index: number) => (
-                        <div key={index} className="p-2 border rounded mb-2">
-                          <p className="font-semibold">{item.drugName}</p>
-                          <p className="text-sm">
-                            {item.dosage} - {item.frequency} - {item.duration}
-                          </p>
-                        </div>
+        <TabsContent value="queue" className="mt-4">
+          <Card>
+            <CardHeader><CardTitle>Active Prescriptions</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader><TableRow><TableHead>Patient Name</TableHead><TableHead>Doctor</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {isLoadingQueue ? (<TableRow><TableCell colSpan={5} className="text-center">Loading queue...</TableCell></TableRow>)
+                    : prescriptions.length === 0 ? (<TableRow><TableCell colSpan={5} className="text-center">No active prescriptions.</TableCell></TableRow>)
+                      : prescriptions.map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell>{p.record.patient.name}</TableCell>
+                          <TableCell>{p.record.doctor.name}</TableCell>
+                          <TableCell>{format(new Date(p.record.visitDate), "dd MMM yyyy")}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${p.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
+                              }`}>
+                              {p.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" onClick={() => setSelectedPrescription(p)}>View Details</Button>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </div>
-                    <div className="space-y-2">
-                      {selectedPrescription.status === 'PENDING' && (
-                        <Button
-                          className="w-full"
-                          onClick={() => handleProcessPrescription(selectedPrescription.id)}
-                        >
-                          Start Processing
-                        </Button>
-                      )}
-                      <Button
-                        className="w-full"
-                        onClick={() => handleCompletePrescription(selectedPrescription.id)}
-                      >
-                        Mark as Completed
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-8">
-                    Select a prescription to view details
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Inventory Tab */}
         <TabsContent value="inventory" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Add New Drug</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-3">
-                <Input
-                  placeholder="Drug name"
-                  value={newDrug.name}
-                  onChange={(e) => setNewDrug({ ...newDrug, name: e.target.value })}
-                />
-                <Input
-                  type="number"
-                  placeholder="Initial stock"
-                  value={newDrug.stock}
-                  onChange={(e) => setNewDrug({ ...newDrug, stock: e.target.value })}
-                />
-                <Button onClick={handleAddDrug}>Add Drug</Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Drug Inventory</CardTitle>
+              <Button size="sm" onClick={() => setIsAddDrugModalOpen(true)}><PlusCircle className="mr-2 h-4 w-4" />Add Drug</Button>
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Drug Name</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <TableHeader><TableRow><TableHead>Drug Name</TableHead><TableHead>Stock</TableHead><TableHead>Unit</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {inventory.map((drug: any) => (
                     <TableRow key={drug.id}>
@@ -260,6 +239,121 @@ export function PharmacyQueuePage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Prescription Detail Modal */}
+      <Dialog open={!!selectedPrescription} onOpenChange={() => setSelectedPrescription(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Prescription Details</DialogTitle>
+            <DialogDescription>
+              Patient: {selectedPrescription?.record.patient.name} - {format(new Date(selectedPrescription?.record.visitDate || new Date()), "dd MMM yyyy")}
+              <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${selectedPrescription?.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
+                }`}>
+                {selectedPrescription?.status}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Table>
+              <TableHeader><TableRow><TableHead>Drug</TableHead><TableHead>Dosage</TableHead><TableHead>Frequency</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {selectedPrescription?.items.map((item, index) => (
+                  <TableRow key={index}><TableCell>{item.drugName}</TableCell><TableCell>{item.dosage}</TableCell><TableCell>{item.frequency}</TableCell></TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <div>
+              <Button variant="outline" onClick={() => setSelectedPrescription(null)}>Close</Button>
+            </div>
+            <div className="flex gap-2">
+              {selectedPrescription?.status === 'PENDING' && (
+                <Button variant="secondary" onClick={() => handleUpdateStatus(selectedPrescription!.id, 'PROCESSING')}>
+                  Start Processing
+                </Button>
+              )}
+              <Button onClick={() => handleUpdateStatus(selectedPrescription!.id, 'COMPLETED')}>
+                Mark as Completed
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Drug Modal */}
+      <Dialog open={isAddDrugModalOpen} onOpenChange={setIsAddDrugModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Drug</DialogTitle>
+            <DialogDescription>Tambahkan obat baru ke inventaris.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="drugName">Drug Name</Label>
+              <Input
+                id="drugName"
+                placeholder="e.g. Paracetamol 500mg"
+                value={newDrug.name}
+                onChange={(e) => setNewDrug(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="stock">Initial Stock</Label>
+              <Input
+                id="stock"
+                type="number"
+                placeholder="e.g. 100"
+                value={newDrug.stock}
+                onChange={(e) => setNewDrug(prev => ({ ...prev, stock: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="unit">Unit</Label>
+              <Input
+                id="unit"
+                placeholder="e.g. Tablet, Kapsul, Botol"
+                value={newDrug.unit}
+                onChange={(e) => setNewDrug(prev => ({ ...prev, unit: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDrugModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddDrug}>Add Drug</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Stock Modal */}
+      <Dialog open={isUpdateStockModalOpen} onOpenChange={setIsUpdateStockModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Stock</DialogTitle>
+            <DialogDescription>Update stock untuk: {selectedDrug?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentStock">Current Stock</Label>
+              <Input id="currentStock" value={selectedDrug?.stock || 0} disabled />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newStock">New Stock Amount</Label>
+              <Input
+                id="newStock"
+                type="number"
+                placeholder="Enter new stock amount"
+                value={newStockAmount}
+                onChange={(e) => setNewStockAmount(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUpdateStockModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleUpdateStock}>Update Stock</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
