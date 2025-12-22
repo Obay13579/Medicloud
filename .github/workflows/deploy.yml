@@ -1,13 +1,11 @@
 name: Deploy Medicloud App
 
-# Trigger: Jalan saat push ke main atau dijalankan manual
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
-  # --- JOB 1: SAFETY CHECK (Jalan di Cloud GitHub) ---
   build-check:
     runs-on: ubuntu-latest
     steps:
@@ -28,14 +26,12 @@ jobs:
         run: |
           cd frontend
           npm install
-          npm run build -- --emptyOutDir
+          npm run build
 
-  # --- JOB 2: DEPLOYMENT (Jalan di 5 Laptop Tim) ---
   deploy:
     needs: build-check
     strategy:
       matrix:
-        # Pastikan label ini sesuai dengan runner kamu
         runner-node: [node-1, node-2, node-3, node-4, node-5]
       fail-fast: false
 
@@ -51,18 +47,12 @@ jobs:
           VAL_JWT: ${{ secrets.JWT_SECRET }}
           VAL_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
-          # 1. Pastikan file .env bersih/kosong dulu
-          rm -f .env
-          touch .env
-          
-          # 2. Masukkan variable satu per satu
-          # Kita bungkus value dengan kutip dua (") secara eksplisit
-          echo "DATABASE_URL=\"$VAL_DB_URL\"" >> .env
-          echo "JWT_SECRET=\"$VAL_JWT\"" >> .env
-          echo "VITE_API_URL=\"$VAL_API_URL\"" >> .env
-
-          # Pastikan tidak ada baris kosong aneh di akhir
-          truncate -s -1 .env || true
+          # Buat .env TANPA tanda kutip
+          cat > .env << EOF
+          DATABASE_URL=$VAL_DB_URL
+          JWT_SECRET=$VAL_JWT
+          VITE_API_URL=$VAL_API_URL
+          EOF
 
       - name: Debug .env content
         run: cat .env
