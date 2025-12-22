@@ -58,6 +58,93 @@ Built with a modern **Monorepo Architecture** for seamless full-stack developmen
 - **Load Balancer:** Cloudflare Tunnel (Replica) - *High Availability*
 - **DevOps:** Docker Compose, GitHub Actions (CI/CD)
 
+## 🏢 Multi-tenancy Architecture Design
+
+Sesuai diagram arsitektur, MediCloud menerapkan pola **Logical Isolation (Shared Database, Shared Schema)** untuk efisiensi biaya maksimal bagi klinik kecil.
+
+### 1. Data Isolation Strategy (Repository Pattern)
+Meskipun menggunakan satu database (Supabase), keamanan data antar klinik dijamin melalui arsitektur aplikasi:
+* **Request Entry:** Setiap request masuk membawa JWT Token.
+* **Middleware Layer:** Mengekstrak `tenantId` dari token pengguna yang terautentikasi.
+* **Repository Layer:** (Lihat Diagram *Internal Node Architecture*) Semua query database secara otomatis menyuntikkan klausa `WHERE tenantId = xyz`.
+    * *Developer tidak perlu filter manual, mencegah kebocoran data (Data Leak).*
+
+### 2. Tenant Management Application
+Manajemen Tenant terintegrasi langsung dalam Core System melalui endpoint khusus:
+* **Onboarding:** Endpoint `POST /api/tenants` menangani provisioning akun klinik baru, admin awal, dan konfigurasi dasar secara otomatis.
+* **Resource Provisioning:** Saat tenant baru dibuat, sistem tidak membuat database baru, melainkan membuat *record* isolasi pada tabel `Tenant` yang direferensikan oleh semua tabel lain.
+
+### **Architecture Diagram**
+
+<img width="10809" height="2376" alt="architecture-diagram-2025-12-22-012352" src="https://github.com/user-attachments/assets/6174e02a-b19d-43d2-b79f-30afdfdac6e9" />
+
+---
+
+## ☁️ Cloud Architecture & Standards (NIST CCRA Alignment)
+
+MediCloud mengadopsi kerangka kerja **NIST SP 500-292 (Cloud Computing Reference Architecture)** dengan pemetaan peran sebagai berikut:
+
+### 1. Cloud Consumer (Pengguna)
+* **SaaS Consumer:** Klinik-klinik (Admin, Dokter, Apoteker) yang mengakses layanan melalui Web Browser via HTTPS.
+* **Perangkat:** Laptop/PC/Tablet tanpa perlu instalasi software tambahan.
+
+### 2. Cloud Provider (Penyedia Layanan - MediCloud Team)
+* **SaaS Layer:** Aplikasi MediCloud (Frontend & Backend) yang menyediakan fitur manajemen klinik.
+* **Resource Abstraction:** Menggunakan **Docker & Docker Compose** untuk mengisolasi *runtime environment*, memastikan aplikasi berjalan konsisten di berbagai *node* server fisik.
+* **Service Orchestration:** Menggunakan script automasi untuk manajemen *container lifecycle*.
+
+### 3. Cloud Broker (Integrator)
+* **Network Aggregation:** **Cloudflare Tunnel** bertindak sebagai *intermediary* yang mengamankan trafik, menyediakan *Load Balancing*, dan enkripsi SSL/TLS tanpa membuka port publik pada server fisik.
+* **Database Service:** **Supabase (Managed PostgreSQL)** digunakan sebagai *Database-as-a-Service* untuk menjamin ketersediaan data (High Availability) dan keamanan terpusat.
+
+### 4. Cloud Carrier (Transport)
+* Jalur internet publik yang dienkripsi (HTTPS) menghubungkan Cloud Consumer dengan Edge Network (Cloudflare).
+
+### Resource Abstraction & Provisioning
+
+- **Resource Abstraction:** Menggunakan Docker Containerization untuk mengabstraksi runtime environment (Node.js) yang memastikan konsistensi aplikasi di berbagai lingkungan server.
+- **Provisioning:** Menggunakan Docker Compose untuk orkestrasi kontainer secara otomatis. 
+
+### Business Support System (BSS)
+
+- **Tenant Billing:** Dengan skema Pay-as-you-grow, otomatis menghitung biaya langganan berdasarkan jumlah data atau durasi penggunaan.
+- **Provisioning Logic:** Endpoint `/api/tenants` menangani pembuatan data terisolasi secara otomatis untuk setiap klinik baru yang mendaftar.
+
+## 📈 Monitoring & Observability Design
+
+Untuk memantau kesehatan *Replicated Production Nodes* yang tersebar, digunakan stack monitoring berbasis *Time-series data*:
+
+| Komponen | Alat | Fungsi |
+| :--- | :--- | :--- |
+| **Metric Collector** | **cAdvisor** | Mengambil data penggunaan resource (CPU/RAM) dari setiap container Docker secara *real-time*. |
+| **Data Aggregator** | **Prometheus** | Menyimpan data metrik dari 5 node berbeda ke dalam satu database *time-series*. |
+| **Visualization** | **Grafana** | Dashboard visual untuk memantau trafik, *error rate* (5xx), dan kesehatan server. |
+| **Log Management** | **Loki & Promtail** | Mengumpulkan logs dari aplikasi Backend/Frontend terpusat untuk *debugging* tanpa perlu SSH ke masing-masing laptop. |
+
+**Alerting Rules:**
+* Notifikasi dikirim jika *CPU Usage* > 80% pada salah satu node.
+* Notifikasi jika *Database Connection* ke Supabase terputus.
+
+## 🚀 CI/CD Pipeline (Automated DevOps)
+
+MediCloud menggunakan **GitHub Actions** untuk mendistribusikan pembaruan kode ke seluruh *node* server secara serentak (Parallel Deployment).
+
+### Pipeline Workflow
+Sesuai diagram, alur deployment berjalan sebagai berikut:
+
+1.  **Push to Main:** Developer melakukan push kode ke repository GitHub.
+2.  **Job 1: Quality Gate (Cloud Runner)**
+    * GitHub menjalankan *Unit Test* dan *Build Check* di server Ubuntu (Cloud).
+    * Mencegah kode *error* ter-deploy ke server produksi.
+3.  **Job 2: Matrix Deployment (Self-Hosted Runners)**
+    * GitHub memerintahkan 5 laptop server (`node-1` s/d `node-5`) secara bersamaan.
+    * **Pull:** Mengambil kode terbaru.
+    * **Build:** Setiap node membangun ulang Docker Image (Backend & Frontend) secara lokal.
+    * **Restart:** Melakukan *Rolling Restart* pada container aplikasi.
+
+### Zero Downtime Strategy
+* Karena menggunakan **Cloudflare Load Balancing** (lihat diagram *Edge Network*), jika satu node sedang proses *rebuild/restart*, trafik otomatis dialihkan ke node lain yang masih aktif.
+
 ---
 
 ## 📂 Project Structure
