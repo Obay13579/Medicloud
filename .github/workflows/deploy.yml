@@ -8,7 +8,6 @@ on:
 
 jobs:
   # --- JOB 1: SAFETY CHECK (Jalan di Cloud GitHub) ---
-  # Tujuannya: Mencegah kode error/sampah ter-deploy ke 5 laptop sekaligus.
   build-check:
     runs-on: ubuntu-latest
     steps:
@@ -24,68 +23,53 @@ jobs:
         run: |
           cd backend
           npm install
-          # Kalau ada syntax error parah di package.json, bakal gagal disini
 
       - name: Check Frontend (Build Test)
         run: |
           cd frontend
           npm install
-          # Coba build dulu. Kalau ada error React/TypeScript, bakal gagal disini.
-          # Kita pakai --emptyOutDir agar tidak menyimpan hasil build (cuma tes doang)
           npm run build -- --emptyOutDir
 
   # --- JOB 2: DEPLOYMENT (Jalan di 5 Laptop Tim) ---
-  # Hanya jalan kalau 'build-check' SUKSES (Hijau)
   deploy:
     needs: build-check
     strategy:
-      # Matrix: Memecah tugas ini menjadi 5 tugas paralel
       matrix:
-        # Pastikan label ini SUDAH dipasang di Settings -> Actions -> Runners
+        # Pastikan label ini sesuai dengan runner kamu
         runner-node: [node-1, node-2, node-3, node-4, node-5]
-      # Fail-fast false: Jika 1 laptop gagal, laptop lain tetap lanjut deploy
       fail-fast: false
 
-    # Menggunakan Self-Hosted Runner sesuai label di matrix
     runs-on: [self-hosted, "${{ matrix.runner-node }}"]
 
     steps:
-      # 1. Ambil Kode Terbaru dari GitHub
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Generate file .env (VERSI AMAN / SAFE MODE) 🛡️
-      # Kita mapping dulu secret ke variable shell supaya aman dari tanda kutip/spasi
+      # --- BAGIAN INI YANG TADI ERROR ---
+      # Pastikan penulisan ${{ secrets.NAMA_SECRET }} hanya pakai 1 titik
       - name: Create .env file
         env:
-          # Mapping Secret GitHub -> Variable Linux
+          # Mapping Secret ke Variable Linux (Aman dari tanda kutip)
           VAL_ENV_FILE: ${{ secrets.ENV_FILE }}
           VAL_DB_URL: ${{ secrets.DATABASE_URL }}
           VAL_JWT: ${{ secrets.JWT_SECRET }}
           VAL_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
-          # Tulis isi secret ENV_FILE lama (jika ada isinya)
+          # 1. Tulis isi ENV_FILE (jika ada)
           echo "$VAL_ENV_FILE" > .env
           
-          # Append variable spesifik satu per satu
-          # Menggunakan $VAR jauh lebih aman daripada ${{ secrets... }} langsung
+          # 2. Append variable spesifik
           echo "DATABASE_URL=$VAL_DB_URL" >> .env
           echo "JWT_SECRET=$VAL_JWT" >> .env
           echo "VITE_API_URL=$VAL_API_URL" >> .env
 
-      # [Opsional] Debugging: Lihat isi .env (password akan disensor bintang *** oleh GitHub)
       - name: Debug .env content
         run: cat .env
 
-      # 3. Build & Restart Container Aplikasi
-      # --build: Paksa rebuild image dengan kode baru
-      # backend frontend: Hanya restart service ini (Tunnel & Monitoring AMAN)
       - name: Deploy App Containers
         run: |
           docker compose up -d --build backend frontend
 
-      # 4. Bersih-bersih Image Lama
-      # Mencegah harddisk laptop penuh karena tumpukan image bekas ("dangling images")
       - name: Prune Old Images
         run: |
           docker image prune -f
