@@ -1,38 +1,44 @@
-// frontend/src/stores/authStore.ts
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: 'ADMIN' | 'DOCTOR' | 'PHARMACIST';
-  tenant: {
-    id: string;
-    name: string;
-    slug: string;
-  }
-}
+import { authService } from '@/services/authService';
 
 interface AuthState {
-  user: User | null;
+  user: any | null;
   token: string | null;
-  login: (token: string, user: User) => void;
+  isLoading: boolean;
+  login: (credentials: { email: string; password: string }) => Promise<void>;
   logout: () => void;
+  fetchUser: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      token: null,
-      user: null,
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  token: localStorage.getItem('token'),
+  isLoading: false,
 
-      login: (token, user) => set({ token, user }),
-      logout: () => set({ token: null, user: null }),
-    }),
-    {
-      name: 'auth-storage', 
-      storage: createJSONStorage(() => localStorage),
+  login: async (credentials) => {
+    set({ isLoading: true });
+    try {
+      const { data } = await authService.login(credentials);
+      localStorage.setItem('token', data.token);
+      set({ token: data.token });
+      await useAuthStore.getState().fetchUser();
+    } finally {
+      set({ isLoading: false });
     }
-  )
-);
+  },
+
+  fetchUser: async () => {
+    try {
+      const { data } = await authService.getMe();
+      set({ user: data });
+    } catch (error) {
+      set({ user: null, token: null });
+      localStorage.removeItem('token');
+    }
+  },
+
+  logout: () => {
+    localStorage.removeItem('token');
+    set({ user: null, token: null });
+  },
+}));
