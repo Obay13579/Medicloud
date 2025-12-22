@@ -42,20 +42,18 @@ jobs:
         uses: actions/checkout@v4
         
       - name: Create .env file
-        env:
-          VAL_DB_URL: ${{ secrets.DATABASE_URL }}
-          VAL_JWT: ${{ secrets.JWT_SECRET }}
-          VAL_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
-          # Buat .env TANPA tanda kutip
-          cat > .env << EOF
-          DATABASE_URL=$VAL_DB_URL
-          JWT_SECRET=$VAL_JWT
-          VITE_API_URL=$VAL_API_URL
-          EOF
+          cat > .env << 'ENVEOF'
+          DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          VITE_API_URL="${{ secrets.VITE_API_URL }}"
+          ENVEOF
 
-      - name: Debug .env content
-        run: cat .env
+      - name: Debug .env content (masked)
+        run: |
+          echo "DATABASE_URL is set: $(grep -c DATABASE_URL .env || echo 0)"
+          echo "JWT_SECRET is set: $(grep -c JWT_SECRET .env || echo 0)"
+          echo "VITE_API_URL is set: $(grep -c VITE_API_URL .env || echo 0)"
 
       - name: Deploy App Containers
         run: |
