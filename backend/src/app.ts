@@ -9,6 +9,8 @@ import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 // Load environment variables from root Medicloud folder
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
+import tenantRoutes from './routes/tenantRoutes';
+
 export const app: Application = express();
 export const prisma = new PrismaClient();
 
@@ -48,6 +50,8 @@ app.get('/api/test-db', async (req: Request, res: Response) => {
   }
 });
 
+
+app.use('/api/tenants', tenantRoutes);
 // API Routes
 app.use('/api', routes);
 
