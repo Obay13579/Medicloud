@@ -1,15 +1,17 @@
-// frontend/src/router/ProtectedRoute.tsx
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { ReactNode } from 'react';
 
-export const ProtectedRoute = () => {
+interface ProtectedRouteProps {
+  children: ReactNode;
+}
+
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { token } = useAuthStore();
 
   if (!token) {
-    // Jika tidak ada token, redirect ke halaman login
     return <Navigate to="/login" replace />;
   }
 
-  // Jika ada token, tampilkan konten halaman (misal: AppLayout)
-  return <Outlet />;
-};
+  return <>{children}</>;
+}

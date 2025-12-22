@@ -1,33 +1,15 @@
-// frontend/src/pages/public/LoginPage.tsx
-import { LoginForm } from "@/features/auth/LoginForm";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import { LoginForm } from '@/features/auth/LoginForm';
 
-const LoginPage = () => {
+export function LoginPage() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-           <Link to="/" className="text-2xl font-bold text-gray-800 mb-2 inline-block">
-            🏥 <span className="text-blue-600">Medi</span>Cloud
-          </Link>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Masuk ke akun Anda untuk melanjutkan</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LoginForm />
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-gray-600">
-            Belum punya akun?{" "}
-            <Link to="/register" className="font-medium text-blue-600 hover:underline">
-              Daftar di sini
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold">Sign in to MediCloud</h2>
+          <p className="mt-2 text-gray-600">Access your clinic management system</p>
+        </div>
+        <LoginForm />
+      </div>
     </div>
   );
-};
-
-export default LoginPage;
+}
