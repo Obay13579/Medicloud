@@ -77,7 +77,7 @@ Built with a modern **Monorepo Architecture** for seamless full-stack developmen
 
 ### Business Support System (BSS)
 
-- **Tenant Billing:** Otomatis menghitung biaya langganan berdasarkan jumlah data atau durasi penggunaan.
+- **Tenant Billing:** Dengan skema Pay-as-you-grow, otomatis menghitung biaya langganan berdasarkan jumlah data atau durasi penggunaan.
 - **Provisioning Logic:** Endpoint `/api/tenants` menangani pembuatan data terisolasi secara otomatis untuk setiap klinik baru yang mendaftar.
 
 ### Rancangan Monitoring
