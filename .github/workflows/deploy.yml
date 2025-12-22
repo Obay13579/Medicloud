@@ -44,24 +44,25 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      # --- BAGIAN INI YANG TADI ERROR ---
-      # Pastikan penulisan ${{ secrets.NAMA_SECRET }} hanya pakai 1 titik
+        
       - name: Create .env file
         env:
-          # Mapping Secret ke Variable Linux (Aman dari tanda kutip)
-          VAL_ENV_FILE: ${{ secrets.ENV_FILE }}
           VAL_DB_URL: ${{ secrets.DATABASE_URL }}
           VAL_JWT: ${{ secrets.JWT_SECRET }}
           VAL_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
-          # 1. Tulis isi ENV_FILE (jika ada)
-          echo "$VAL_ENV_FILE" > .env
+          # 1. Pastikan file .env bersih/kosong dulu
+          rm -f .env
+          touch .env
           
-          # 2. Append variable spesifik
-          echo "DATABASE_URL=$VAL_DB_URL" >> .env
-          echo "JWT_SECRET=$VAL_JWT" >> .env
-          echo "VITE_API_URL=$VAL_API_URL" >> .env
+          # 2. Masukkan variable satu per satu
+          # Kita bungkus value dengan kutip dua (") secara eksplisit
+          echo "DATABASE_URL=\"$VAL_DB_URL\"" >> .env
+          echo "JWT_SECRET=\"$VAL_JWT\"" >> .env
+          echo "VITE_API_URL=\"$VAL_API_URL\"" >> .env
+
+          # Pastikan tidak ada baris kosong aneh di akhir
+          truncate -s -1 .env || true
 
       - name: Debug .env content
         run: cat .env
