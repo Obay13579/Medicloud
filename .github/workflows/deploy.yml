@@ -42,12 +42,16 @@ jobs:
         uses: actions/checkout@v4
         
       - name: Create .env file
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
-          cat > .env << 'ENVEOF'
-          DATABASE_URL="${{ secrets.DATABASE_URL }}"
-          JWT_SECRET="${{ secrets.JWT_SECRET }}"
-          VITE_API_URL="${{ secrets.VITE_API_URL }}"
-          ENVEOF
+          {
+            echo "DATABASE_URL=\"${DATABASE_URL}\""
+            echo "JWT_SECRET=\"${JWT_SECRET}\""
+            echo "VITE_API_URL=\"${VITE_API_URL}\""
+          } > .env
 
       - name: Debug .env content (masked)
         run: |
