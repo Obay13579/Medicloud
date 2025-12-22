@@ -41,24 +41,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         
-      - name: Create .env file
+      - name: Remove old .env if exists
         run: |
-          cat > .env <<EOF
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          VITE_API_URL=${{ secrets.VITE_API_URL }}
-          EOF
-          # Trim whitespace dan newlines
-          sed -i 's/^[[:space:]]*//;s/[[:space:]]*$//' .env
-          # Hapus baris kosong
-          sed -i '/^$/d' .env
-
-      - name: Debug .env content
-        run: |
-          echo "=== .env file content ==="
-          cat .env
-          echo "=== End of .env ==="
-          wc -l .env
+          rm -f .env
 
       - name: Deploy App Containers
         env:
@@ -66,12 +51,10 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
-          # Export as environment variables
-          export DATABASE_URL="${DATABASE_URL}"
-          export JWT_SECRET="${JWT_SECRET}"
-          export VITE_API_URL="${VITE_API_URL}"
-          
-          # Run docker compose (akan baca dari env vars)
+          # Run docker compose dengan env vars langsung
+          DATABASE_URL="${DATABASE_URL}" \
+          JWT_SECRET="${JWT_SECRET}" \
+          VITE_API_URL="${VITE_API_URL}" \
           docker compose up -d --build backend frontend
 
       - name: Prune Old Images
