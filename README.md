@@ -58,6 +58,11 @@ Built with a modern **Monorepo Architecture** for seamless full-stack developmen
 - **Load Balancer:** Cloudflare Tunnel (Replica) - *High Availability*
 - **DevOps:** Docker Compose, GitHub Actions (CI/CD)
 
+### **Architecture Diagram**
+
+<img width="10809" height="2376" alt="architecture-diagram-2025-12-22-012352" src="https://github.com/user-attachments/assets/6174e02a-b19d-43d2-b79f-30afdfdac6e9" />
+
+
 ---
 
 ## Cloud Architecture & Standards
