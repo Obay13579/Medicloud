@@ -4,7 +4,7 @@ services:
   # --- Backend App ---
   backend:
     build: ./backend
-    container_name: medicloud-backend
+    container_name: medicloudy-backend
     restart: always
     environment:
       # PENTING: Pastikan ini baca variable dari file .env
@@ -14,19 +14,19 @@ services:
     ports:
       - "3000:3000"
     networks:
-      - medicloud_network
+      - medicloudy_network
 
   # --- Frontend App ---
   frontend:
     build: ./frontend
-    container_name: medicloud-frontend
+    container_name: medicloudy-frontend
     restart: always
     ports:
       - "5173:80"
     networks:
-      - medicloud_network
+      - medicloudy_network
 
 networks:
-  medicloud_network:
-    name: medicloud_network
+  medicloudy_network:
+    name: medicloudy_network
     external: true
