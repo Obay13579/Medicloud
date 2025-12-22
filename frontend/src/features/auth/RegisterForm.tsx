@@ -16,6 +16,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -24,6 +31,9 @@ const formSchema = z.object({
   clinicName: z.string().min(3, { message: "Nama klinik minimal 3 karakter." }),
   name: z.string().min(3, { message: "Nama Anda minimal 3 karakter." }),
   email: z.string().email({ message: "Format email tidak valid." }),
+  role: z.enum(["ADMIN", "DOCTOR", "PHARMACIST"], { 
+    message: "Pilih role Anda." 
+  }),
   password: z.string().min(6, { message: "Password minimal 6 karakter." }),
   confirmPassword: z.string()
 }).refine(data => data.password === data.confirmPassword, {
@@ -41,6 +51,7 @@ export function RegisterForm() {
       clinicName: "",
       name: "",
       email: "",
+      role: undefined,
       password: "",
       confirmPassword: "",
     },
@@ -53,24 +64,25 @@ export function RegisterForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      // Siapkan data untuk dikirim ke API
-      const payload = {
-        // Data untuk Tenant/Klinik
+      const tenantSlug = createSlug(values.clinicName);
+      
+      // Step 1: Buat tenant/klinik terlebih dahulu
+      const tenantPayload = {
         name: values.clinicName,
-        slug: createSlug(values.clinicName),
-
-        // Data untuk User Admin pertama
-        adminUser: {
-          name: values.name,
-          email: values.email,
-          password: values.password,
-        }
+        slug: tenantSlug,
       };
-
-      // Panggil API untuk membuat tenant (klinik) baru
-      // CATATAN: Asumsinya backend memiliki satu endpoint untuk menangani ini.
-      // Endpoint `POST /api/tenants` mungkin sudah di-setup untuk menerima data admin.
-      await api.post('/api/tenants', payload);
+      const tenantResponse = await api.post('/tenants', tenantPayload);
+      const tenantId = tenantResponse.data.id || tenantResponse.data.tenant?.id;
+      
+      // Step 2: Register user dengan tenant yang baru dibuat
+      const registerPayload = {
+        tenantId: tenantId,
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        role: values.role,
+      };
+      await api.post('/auth/register', registerPayload);
 
       toast({
         title: "Registrasi Berhasil!",
@@ -129,6 +141,28 @@ export function RegisterForm() {
               <FormControl>
                 <Input placeholder="admin@klinik.com" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Role</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih role Anda" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                  <SelectItem value="DOCTOR">Dokter</SelectItem>
+                  <SelectItem value="PHARMACIST">Apoteker</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
