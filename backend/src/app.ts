@@ -7,11 +7,7 @@ import routes from './routes';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 
 // Load environment variables from root Medicloud folder
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
-
-// Fix: Ganti import ke tenant.routes
-import tenantRoutes from './routes/tenant.routes';
-
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 export const app: Application = express();
 export const prisma = new PrismaClient();
 
@@ -51,7 +47,6 @@ app.get('/api/test-db', async (req: Request, res: Response) => {
   }
 });
 
-app.use('/api/tenants', tenantRoutes);
 // API Routes
 app.use('/api', routes);
 

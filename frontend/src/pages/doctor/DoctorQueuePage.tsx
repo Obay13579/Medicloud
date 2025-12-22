@@ -23,7 +23,16 @@ export function DoctorQueuePage() {
         doctorId: user.id,
         date: today,
       });
-      setAppointments(data);
+
+      // Memanggil endpoint sesuai panduan
+      const response = await api.get(`/api/${tenantSlug}/appointments?${params.toString()}`);
+      const data = response.data.data || response.data || [];
+
+      // Filter antrian yang relevan untuk dokter (misalnya yang belum selesai)
+      const relevantQueue = data.filter((apt: Appointment) =>
+        apt.status === 'CHECKED_IN' || apt.status === 'IN_PROGRESS'
+      );
+      setAppointments(relevantQueue);
     } catch (error) {
       console.error('Failed to load queue', error);
     }
@@ -31,8 +40,12 @@ export function DoctorQueuePage() {
 
   const handleCallPatient = async (id: string) => {
     try {
-      await appointmentService.update(tenant, id, { status: 'IN_PROGRESS' });
-      navigate(`/doctor/emr/${id}`);
+      // Memanggil endpoint PATCH untuk update status
+      await api.patch(`/api/${tenantSlug}/appointments/${appointmentId}`, { status: 'IN_PROGRESS' });
+      toast({ title: "Success", description: "Consultation started." });
+
+      // Navigasi ke Halaman EMR setelah berhasil
+      navigate(`/doctor/emr/${appointmentId}/${patientId}`);
     } catch (error) {
       alert('Failed to call patient');
     }
@@ -42,26 +55,49 @@ export function DoctorQueuePage() {
     <div className="p-6 space-y-6">
       <h1 className="text-3xl font-bold">Today's Queue</h1>
 
-      <div className="grid gap-4">
-        {appointments.map((apt: any) => (
-          <Card key={apt.id}>
-            <CardContent className="flex justify-between items-center p-6">
-              <div>
-                <h3 className="text-xl font-semibold">{apt.patient?.name}</h3>
-                <p className="text-gray-600">Time: {apt.timeSlot}</p>
-                <Badge className="mt-2">{apt.status}</Badge>
-              </div>
-              <Button onClick={() => handleCallPatient(apt.id)}>
-                Start Consultation
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-
-        {appointments.length === 0 && (
-          <p className="text-center text-gray-500 py-8">No patients in queue</p>
-        )}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Queue List</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader><TableRow><TableHead>Patient Name</TableHead><TableHead>Time</TableHead><TableHead>Status</TableHead><TableHead>Action</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={4} className="text-center">Loading queue...</TableCell></TableRow>
+              ) : appointments.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center">No patients in the queue for today.</TableCell></TableRow>
+              ) : (
+                appointments.map((apt) => (
+                  <TableRow key={apt.id}>
+                    <TableCell className="font-medium">{apt.patient.name}</TableCell>
+                    <TableCell>{apt.timeSlot}</TableCell>
+                    <TableCell>{apt.status}</TableCell>
+                    <TableCell>
+                      {apt.status === 'IN_PROGRESS' ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => navigate(`/doctor/emr/${apt.id}/${apt.patient.id}`)}
+                        >
+                          Continue
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => handleStartConsultation(apt.id, apt.patient.id)}
+                        >
+                          Start Consultation
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

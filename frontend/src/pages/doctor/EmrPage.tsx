@@ -40,17 +40,13 @@ export function EmrPage() {
 
   const loadPatientData = async () => {
     try {
-      // Get appointment detail
-      const { data: appointment } = await appointmentService.getById(tenant, appointmentId!);
-      const patientId = appointment.patientId;
-
-      // Get patient info
-      const { data: patientData } = await patientService.getById(tenant, patientId);
-      setPatient(patientData);
-
-      // Get medical history
-      const { data: records } = await patientService.getRecords(tenant, patientId);
-      setMedicalHistory(records);
+      const [patientRes, historyRes] = await Promise.all([
+        api.get(`/api/${tenantSlug}/patients/${patientId}`),
+        api.get(`/api/${tenantSlug}/patients/${patientId}/records`)
+      ]);
+      // Handle nested response format
+      setPatient(patientRes.data.data || patientRes.data);
+      setHistory(historyRes.data.data || historyRes.data || []);
     } catch (error) {
       console.error('Failed to load patient data', error);
     }
@@ -86,15 +82,13 @@ export function EmrPage() {
 
     setIsLoading(true);
     try {
-      await emrService.createRecord(tenant, {
-        patientId: patient.id,
-        appointmentId,
-        subjective,
-        objective,
-        assessment,
-        plan,
-      });
-      alert('SOAP record saved successfully');
+      const payload = { ...data, patientId, doctorId };
+      const response = await api.post(`/api/${tenantSlug}/records`, payload);
+      // Handle nested response format
+      const recordData = response.data.data || response.data;
+      setNewRecordId(recordData.id); // Save the new record ID
+      toast({ title: "SOAP Saved", description: "Medical record has been saved. You can now send prescription." });
+      await fetchData(); // Refresh history
     } catch (error) {
       alert('Failed to save SOAP record');
     } finally {
@@ -163,41 +157,67 @@ export function EmrPage() {
         </CardContent>
       </Card>
 
-      {/* Medical History */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Medical History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {medicalHistory.length === 0 ? (
-            <p className="text-gray-500">No previous records</p>
-          ) : (
-            <div className="space-y-2">
-              {medicalHistory.map((record: any) => (
-                <div key={record.id} className="p-3 border rounded">
-                  <p className="text-sm text-gray-600">{new Date(record.createdAt).toLocaleDateString()}</p>
-                  <p><strong>Diagnosis:</strong> {record.assessment}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Medical History Section */}
+        <div className="md:col-span-1 space-y-4">
+          <h2 className="text-xl font-semibold">Medical History</h2>
+          <Accordion type="single" collapsible className="w-full">
+            {history.length > 0 ? history.map(record => (
+              <AccordionItem key={record.id} value={record.id}>
+                <AccordionTrigger>{format(new Date(record.visitDate), 'dd MMMM yyyy')}</AccordionTrigger>
+                <AccordionContent className="space-y-2 text-sm">
+                  <p><strong className="font-medium">S:</strong> {record.subjective}</p>
+                  <p><strong className="font-medium">O:</strong> {record.objective}</p>
+                  <p><strong className="font-medium">A:</strong> {record.assessment}</p>
+                  <p><strong className="font-medium">P:</strong> {record.plan}</p>
+                </AccordionContent>
+              </AccordionItem>
+            )) : <p className="text-sm text-muted-foreground">No prior medical history found.</p>}
+          </Accordion>
+        </div>
 
-      {/* SOAP Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>SOAP Notes</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Subjective (Patient's Complaint)</Label>
-            <Textarea
-              placeholder="Patient complaints, symptoms..."
-              value={subjective}
-              onChange={(e) => setSubjective(e.target.value)}
-              rows={3}
-            />
+        {/* Current Consultation Section */}
+        <div className="md:col-span-2 space-y-6">
+          <Card>
+            <CardHeader><CardTitle>SOAP Notes</CardTitle></CardHeader>
+            <CardContent>
+              <Form {...soapForm}>
+                <form onSubmit={soapForm.handleSubmit(onSaveSoap)} className="space-y-4">
+                  <FormField name="subjective" control={soapForm.control} render={({ field }) => (<FormItem><FormLabel>Subjective</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField name="objective" control={soapForm.control} render={({ field }) => (<FormItem><FormLabel>Objective</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField name="assessment" control={soapForm.control} render={({ field }) => (<FormItem><FormLabel>Assessment</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField name="plan" control={soapForm.control} render={({ field }) => (<FormItem><FormLabel>Plan</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <Button type="submit" disabled={!!newRecordId || soapForm.formState.isSubmitting}>
+                    {newRecordId ? "Saved" : "Save SOAP"}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Prescription</CardTitle></CardHeader>
+            <CardContent>
+              <Form {...prescriptionForm}>
+                <form onSubmit={prescriptionForm.handleSubmit(onSendPrescription)} className="space-y-4">
+                  {fields.map((field, index) => (
+                    <div key={field.id} className="flex items-end gap-2">
+                      <FormField name={`items.${index}.drugName`} control={prescriptionForm.control} render={({ field }) => (<FormItem className="flex-1"><FormLabel>Drug</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select Drug" /></SelectTrigger></FormControl><SelectContent>{drugList.map(drug => <SelectItem key={drug} value={drug}>{drug}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                      <FormField name={`items.${index}.dosage`} control={prescriptionForm.control} render={({ field }) => (<FormItem><FormLabel>Dosage</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                      <FormField name={`items.${index}.frequency`} control={prescriptionForm.control} render={({ field }) => (<FormItem><FormLabel>Frequency</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                      <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={() => append({ drugName: '', dosage: '', frequency: '' })}><PlusCircle className="mr-2 h-4 w-4" />Add Drug</Button>
+                  <Separator />
+                  <Button type="submit" disabled={!newRecordId || prescriptionForm.formState.isSubmitting}>Send to Pharmacy</Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          <div className="text-right">
+            <Button size="lg" onClick={onCompleteConsultation} disabled={!newRecordId}>Complete Consultation</Button>
           </div>
           <div>
             <Label>Objective (Physical Examination)</Label>
