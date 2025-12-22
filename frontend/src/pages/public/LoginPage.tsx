@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { LoginForm } from '@/features/auth/LoginForm';
 
 export function LoginPage() {
@@ -10,12 +9,6 @@ export function LoginPage() {
           <p className="mt-2 text-gray-600">Access your clinic management system</p>
         </div>
         <LoginForm />
-        <div className="text-center text-sm">
-          <span className="text-gray-600">Belum punya akun? </span>
-          <Link to="/register" className="text-primary font-medium hover:underline">
-            Daftar sekarang
-          </Link>
-        </div>
       </div>
     </div>
   );
