@@ -47,11 +47,11 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
-          {
-            echo "DATABASE_URL=\"${DATABASE_URL}\""
-            echo "JWT_SECRET=\"${JWT_SECRET}\""
-            echo "VITE_API_URL=\"${VITE_API_URL}\""
-          } > .env
+          printf '%s\n' \
+            "DATABASE_URL=${DATABASE_URL}" \
+            "JWT_SECRET=${JWT_SECRET}" \
+            "VITE_API_URL=${VITE_API_URL}" \
+            > .env
 
       - name: Debug .env content (masked)
         run: |
